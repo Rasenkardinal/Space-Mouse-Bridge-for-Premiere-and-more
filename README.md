@@ -60,6 +60,13 @@ Alternativ die VS-Code-Aufgabe **SpaceMouse: Diagnose starten** oder die
 gebaute `bin\SpaceMouseBridge.exe` verwenden. Vor erneutem Bauen die Bridge
 ueber **Tray-Menue > Beenden** einschliesslich geoeffneter Mapping-Dialoge beenden.
 
+Beim Windows-Autostart bzw. beim Start mit `--tray` startet die App mit
+ausgeblendetem Hauptfenster im Infobereich (Tray) neben der Uhr.
+Per Doppelklick auf das Tray-Symbol oder ueber **Einstellungen oeffnen**
+im Tray-Menue laesst sich das Fenster aufrufen. Das Schliessen des Fensters
+blendet es nur aus; die App laeuft im Hintergrund weiter.
+Ein manueller Start ohne `--tray` zeigt das Hauptfenster direkt an.
+
 Die Geraeteauswahl (Navigation/Zusatzcollection), HID-Pfad, Achsenrohwerte,
 Tastenreports und der letzte HID-Report befinden sich unter
 **Erweiterte Diagnose anzeigen**. Dieser Bereich ist beim Start geschlossen.
