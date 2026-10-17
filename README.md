@@ -47,19 +47,6 @@ Andere Geraete und Treiberversionen sind nicht pauschal verifiziert.
 Das Projekt ist eine unabhaengige Anwendung und kein offizielles Produkt
 von 3Dconnexion, Adobe oder Google.
 
-## Bauen und starten
-
-Windows x64 und .NET Framework 4.x mit enthaltenem C#-Compiler erforderlich.
-Ein .NET-SDK ist nicht notwendig.
-
-```powershell
-.\build.ps1 -Test -Run
-```
-
-Alternativ die VS-Code-Aufgabe **SpaceMouse: Diagnose starten** oder die
-gebaute `bin\SpaceMouseBridge.exe` verwenden. Vor erneutem Bauen die Bridge
-ueber **Tray-Menue > Beenden** einschliesslich geoeffneter Mapping-Dialoge beenden.
-
 Beim Windows-Autostart bzw. beim Start mit `--tray` startet die App mit
 ausgeblendetem Hauptfenster im Infobereich (Tray) neben der Uhr.
 Per Doppelklick auf das Tray-Symbol oder ueber **Einstellungen oeffnen**
