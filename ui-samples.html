@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SpaceMouse Bridge – UI Sample Set</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Inter Tight", "Segoe UI", sans-serif;
+      background: #101112;
+      color: #d4d7da;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; }
+    button, input, select, textarea { font: inherit; }
+    button, input, select { color: inherit; }
+
+    .page { max-width: 1800px; margin: 0 auto; padding: 28px; }
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    .eyebrow, .section-kicker {
+      color: #82909a;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    h1 { margin: 6px 0 8px; color: #f0f2f4; font-size: clamp(24px, 3vw, 34px); letter-spacing: -.035em; }
+    .intro { max-width: 720px; margin: 0; color: #a3abb2; line-height: 1.55; }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .legend span, .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid #343a3f;
+      border-radius: 999px;
+      background: #191c1e;
+      color: #bdc4ca;
+      font-size: 11px;
+      padding: 6px 10px;
+      white-space: nowrap;
+    }
+    .swatch { width: 9px; height: 9px; border-radius: 50%; background: #297aa0; }
+    .swatch.surface { background: #202326; }
+    .swatch.success { background: #72c892; }
+    .swatch.error { background: #f48771; }
+
+    .comparison {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(310px, 1fr));
+      align-items: start;
+      gap: 16px;
+    }
+    .variant {
+      --accent: #297aa0;
+      --accent-hover: #2b7da3;
+      --bg: #121314;
+      --surface: #191a1b;
+      --raised: #202224;
+      --line: #333638;
+      --text: #d2d5d8;
+      --muted: #9ca4aa;
+      --radius: 8px;
+      --card-pad: 15px;
+      --control-height: 34px;
+      --space: 12px;
+      --button-pad: 0 13px;
+      overflow: hidden;
+      border: 1px solid #34383b;
+      border-radius: 12px;
+      background: #151718;
+      box-shadow: 0 12px 30px #0003;
+    }
+    .variant[data-variant="compact"] {
+      --radius: 4px;
+      --card-pad: 12px;
+      --control-height: 30px;
+      --space: 9px;
+      --button-pad: 0 10px;
+      --raised: #1b1d1f;
+    }
+    .variant[data-variant="spacious"] {
+      --radius: 12px;
+      --card-pad: 19px;
+      --control-height: 40px;
+      --space: 16px;
+      --button-pad: 0 16px;
+      --raised: #222629;
+      --line: #3b4247;
+      --text: #e0e4e7;
+      --muted: #adb6bd;
+    }
+    .variant-head {
+      min-height: 88px;
+      padding: 16px 18px 14px;
+      border-bottom: 1px solid #303538;
+      background: linear-gradient(120deg, #1d2123, #17191b);
+    }
+    .variant-title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .variant h2 { margin: 0; color: #f0f2f4; font-size: 18px; letter-spacing: -.02em; }
+    .variant-head p { margin: 5px 0 0; color: #9ea7ad; font-size: 12px; line-height: 1.4; }
+    .variant-number { color: #71808a; font: 11px/1.4 "Cascadia Code", Consolas, monospace; }
+    .sample { display: grid; gap: var(--space); padding: var(--card-pad); }
+    .sample-card {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: var(--card-pad);
+    }
+    .card-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .card-heading h3 { margin: 0; color: var(--text); font-size: 13px; font-weight: 650; }
+    .card-heading small { color: var(--muted); font-size: 10px; }
+    .device-row { display: flex; align-items: center; gap: 10px; }
+    .device-icon {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      flex: none;
+      place-items: center;
+      border: 1px solid #3b454b;
+      border-radius: var(--radius);
+      background: #22272a;
+      color: #b4c5ce;
+      font-size: 16px;
+    }
+    .device-copy { min-width: 0; flex: 1; }
+    .device-copy strong { display: block; color: var(--text); font-size: 12px; }
+    .device-copy small { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #72c892; box-shadow: 0 0 0 3px #72c89220; }
+    .status-dot.warn { background: #e5b567; box-shadow: 0 0 0 3px #e5b56720; }
+    .status-dot.error { background: #f48771; box-shadow: 0 0 0 3px #f4877120; }
+    .profile-line { display: flex; align-items: center; gap: 8px; margin-top: 13px; }
+    .profile-line label, .field label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 10px; font-weight: 600; }
+
+    .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space); }
+    .field { min-width: 0; }
+    .field.full { grid-column: 1 / -1; }
+    .control {
+      width: 100%;
+      min-width: 0;
+      height: var(--control-height);
+      border: 1px solid #41474b;
+      border-radius: var(--radius);
+      outline: none;
+      background: #141617;
+      padding: 0 10px;
+      color: var(--text);
+      font-size: 11px;
+    }
+    textarea.control { height: auto; min-height: 60px; padding: 9px 10px; resize: vertical; line-height: 1.45; }
+    .control:focus-visible, .check:focus-visible + .check-label, .radio:focus-visible + .radio-label, button:focus-visible {
+      outline: 2px solid #74b7d6;
+      outline-offset: 2px;
+    }
+    select.control { appearance: none; padding-right: 30px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%239ca4aa' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; }
+    input[type="number"].control { appearance: textfield; }
+    input[type="number"].control::-webkit-inner-spin-button,
+    input[type="number"].control::-webkit-outer-spin-button { appearance: none; margin: 0; }
+    .unit-control { position: relative; }
+    .unit-control .control { padding-right: 36px; }
+    .unit { position: absolute; top: 50%; right: 10px; color: var(--muted); font-size: 10px; transform: translateY(-50%); }
+
+    .check-row { display: grid; gap: 9px; }
+    .check-wrap { display: flex; align-items: center; gap: 9px; min-height: 18px; }
+    .check, .radio { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .check-label, .radio-label { display: inline-flex; align-items: center; gap: 8px; color: var(--text); cursor: pointer; font-size: 11px; }
+    .check-label::before {
+      display: grid;
+      width: 16px;
+      height: 16px;
+      flex: none;
+      place-items: center;
+      border: 1px solid #67727a;
+      border-radius: 4px;
+      background: #151819;
+      color: white;
+      content: "";
+      transition: background .12s, border-color .12s, border-radius .12s;
+    }
+    .check:checked + .check-label::before {
+      border-color: var(--accent);
+      background: var(--accent);
+      content: "✓";
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .check:indeterminate + .check-label::before {
+      border-color: var(--accent);
+      background: var(--accent);
+      content: "–";
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .check:disabled + .check-label { color: #687178; cursor: not-allowed; }
+    .check:disabled + .check-label::before { border-color: #42484c; background: #25292b; }
+    .radio-group { display: flex; flex-wrap: wrap; gap: 6px; }
+    .radio-label { min-height: 29px; border: 1px solid #41474b; border-radius: var(--radius); padding: 0 9px; color: var(--muted); }
+    .radio:checked + .radio-label { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 20%, #16191a); color: #e5f3f8; }
+    .hint { margin: 8px 0 0; color: var(--muted); font-size: 10px; line-height: 1.45; }
+
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); }
+    table { width: 100%; border-collapse: collapse; white-space: nowrap; font-size: 10px; }
+    th { background: var(--raised); color: var(--muted); font-size: 9px; font-weight: 650; letter-spacing: .04em; text-align: left; text-transform: uppercase; }
+    th, td { height: 32px; border-bottom: 1px solid var(--line); padding: 0 8px; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #ffffff08; }
+    td { color: var(--text); }
+    td code, .mono { font-family: "Cascadia Code", Consolas, monospace; }
+    td select.control { width: auto; height: 25px; font-size: 10px; }
+    .table-check { display: flex; justify-content: center; }
+
+    .tabs { display: flex; gap: 3px; border-bottom: 1px solid var(--line); }
+    .tab {
+      position: relative;
+      border: 0;
+      border-radius: var(--radius) var(--radius) 0 0;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 8px 10px;
+      font-size: 10px;
+    }
+    .tab[aria-selected="true"] { color: #e6f4fa; background: #ffffff08; }
+    .tab[aria-selected="true"]::after { position: absolute; right: 8px; bottom: -1px; left: 8px; height: 2px; background: var(--accent); content: ""; }
+
+    .alert { display: flex; align-items: flex-start; gap: 9px; border: 1px solid; border-radius: var(--radius); padding: 10px; font-size: 10px; line-height: 1.45; }
+    .alert strong { display: block; margin-bottom: 2px; font-size: 10px; }
+    .alert.info { border-color: #297aa044; background: #297aa014; color: #b9d8e6; }
+    .alert.success { border-color: #72c89244; background: #72c89212; color: #a8d9b8; }
+    .alert.warning { border-color: #e5b56744; background: #e5b56712; color: #e6c995; }
+    .alert.error { border-color: #f4877144; background: #f4877112; color: #f0b2a5; }
+    .alert-icon { font-weight: 800; }
+    .button-row { display: flex; flex-wrap: wrap; gap: 7px; }
+    .btn {
+      min-height: var(--control-height);
+      border: 1px solid #42494d;
+      border-radius: var(--radius);
+      background: #222628;
+      color: var(--text);
+      cursor: pointer;
+      padding: var(--button-pad);
+      font-size: 10px;
+      font-weight: 600;
+      transition: background .12s, border-color .12s, transform .12s;
+    }
+    .btn:hover { background: #2b3033; border-color: #69747a; }
+    .btn:active { transform: translateY(1px); }
+    .btn.primary { border-color: var(--accent); background: var(--accent); color: #fff; }
+    .btn.primary:hover { background: var(--accent-hover); }
+    .btn.danger { border-color: #7b4942; background: #322321; color: #f0b2a5; }
+    .btn:disabled { border-color: #34393c; background: #202325; color: #6c7479; cursor: not-allowed; }
+    .action-note { min-height: 14px; margin: 8px 0 0; color: #8fc8a0; font-size: 10px; }
+    .curve {
+      display: block;
+      width: 100%;
+      height: 106px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #141617;
+    }
+    .log {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #111314;
+      padding: 9px;
+      color: #aeb8be;
+      font: 9px/1.65 "Cascadia Code", Consolas, monospace;
+    }
+    .log time { color: #7f8b92; }
+    .log .ok { color: #81cb99; }
+    .log .blue { color: #71b5d3; }
+    .variant-foot { border-top: 1px solid #303538; padding: 11px 16px; color: #879198; font-size: 10px; line-height: 1.45; }
+    .variant-foot strong { color: #bac3c9; }
+    .compare-note { margin: 18px 0 0; border: 1px solid #34383b; border-radius: 10px; background: #17191a; padding: 14px 16px; color: #aab2b8; font-size: 11px; line-height: 1.6; }
+    .compare-note strong { color: #e4e8eb; }
+
+    @media (max-width: 1100px) {
+      .page { padding: 18px; }
+      .comparison { grid-template-columns: repeat(2, minmax(300px, 1fr)); }
+      .page-header { flex-direction: column; }
+      .legend { justify-content: flex-start; }
+    }
+    @media (max-width: 680px) {
+      .comparison { grid-template-columns: minmax(0, 1fr); }
+      .page { padding: 14px; }
+      .variant-head { min-height: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="page-header">
+      <div>
+        <div class="eyebrow">SpaceMouse Bridge · UI exploration</div>
+        <h1>UI Sample Set</h1>
+        <p class="intro">Dieselben App-Elemente in drei Dichte- und Formvarianten. Farbe und Inhalte bleiben gleich, damit Abstände, Ecken und Gewichtung direkt vergleichbar sind. Die Eingaben sind als interaktive Vorschau angelegt.</p>
+      </div>
+      <div class="legend" aria-label="Farbpalette">
+        <span><i class="swatch"></i>Akzent #297AA0</span>
+        <span><i class="swatch surface"></i>Oberfläche</span>
+        <span><i class="swatch success"></i>Erfolg</span>
+        <span><i class="swatch error"></i>Fehler</span>
+      </div>
+    </header>
+
+    <section class="comparison" aria-label="Vergleich der drei UI-Varianten">
+      <article class="variant" data-variant="compact">
+        <header class="variant-head">
+          <div class="variant-title-row"><h2>01 · Kompakt</h2><span class="variant-number">DICHTE A</span></div>
+          <p>Wenig Fläche, klare Hierarchie, kurze Wege.</p>
+        </header>
+        <div class="sample">
+          <section class="sample-card">
+            <div class="card-heading"><h3>Gerät &amp; Profil</h3><span class="pill"><i class="status-dot"></i>Verbunden</span></div>
+            <div class="device-row">
+              <div class="device-icon" aria-hidden="true">✣</div>
+              <div class="device-copy"><strong>SpaceMouse Wireless</strong><small>USB-Empfänger · bereit</small></div>
+              <span class="status-dot" aria-label="Verbunden"></span>
+            </div>
+            <div class="profile-line">
+              <label for="profile-a">Profil</label>
+              <select class="control" id="profile-a"><option>Google Chrome</option><option>Adobe Premiere Pro</option></select>
+            </div>
+          </section>
+
+          <section class="sample-card">
+            <div class="card-heading"><h3>Eingaben</h3><small>Checkbox · Auswahl · Zahlen</small></div>
+            <div class="field-grid">
+              <div class="field full check-row">
+                <div class="check-wrap"><input class="check" type="checkbox" id="bridge-a" checked><label class="check-label" for="bridge-a">Bridge-Ausgabe aktivieren</label></div>
+                <div class="check-wrap"><input class="check" type="checkbox" id="reverse-a"><label class="check-label" for="reverse-a">Richtung umkehren</label></div>
+                <div class="check-wrap"><input class="check" type="checkbox" id="disabled-a" disabled><label class="check-label" for="disabled-a">Nicht verfügbar</label></div>
+              </div>
+              <div class="field"><label for="threshold-a">Auslösung</label><div class="unit-control"><input class="control" id="threshold-a" type="number" value="45" min="15" max="95"><span class="unit">%</span></div></div>
+              <div class="field"><label for="mode-a">Verhalten</label><select class="control" id="mode-a"><option>Kontinuierliches Jog</option><option>Einzelbild + Jog</option></select></div>
+              <div class="field full"><label for="search-a">Eingabefeld</label><input class="control" id="search-a" type="text" value="SpaceMouse Wireless" placeholder="Suchen oder eingeben"></div>
+              <div class="field full"><label for="report-a">Mehrzeilige Ausgabe</label><textarea class="control mono" id="report-a" readonly>HID-Report: 01 00 7F 80
+Achse X: +0.42 · Status: bereit</textarea></div>
+              <div class="field full">
+                <label>Darstellung (Radiobuttons)</label>
+                <div class="radio-group"><input class="radio" type="radio" name="density-a" id="density-a1" checked><label class="radio-label" for="density-a1">Auto</label><input class="radio" type="radio" name="density-a" id="density-a2"><label class="radio-label" for="density-a2">Hell</label><input class="radio" type="radio" name="density-a" id="density-a3"><label class="radio-label" for="density-a3">Dunkel</label></div>
+              </div>
+            </div>
+            <p class="hint">Fokusrahmen, Auswahl, deaktivierter Zustand und native Bedienung.</p>
+          </section>
+
+          <section class="sample-card">
+            <div class="card-heading"><h3>Mapping-Tabelle</h3><small>Achsen · Status · Aktion</small></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Achse</th><th>Modus</th><th>Umkehr.</th><th>Wert</th></tr></thead>
+              <tbody>
+                <tr><td><code>Tx</code> · X</td><td><select class="control"><option>Scrollen</option><option>Treiber</option></select></td><td><div class="table-check"><input class="check" type="checkbox" id="tx-a" checked><label class="check-label" for="tx-a" aria-label="X umkehren"></label></div></td><td class="mono">+0.42</td></tr>
+                <tr><td><code>Ty</code> · Y</td><td><select class="control"><option>Zoom</option><option>Treiber</option></select></td><td><div class="table-check"><input class="check" type="checkbox" id="ty-a"><label class="check-label" for="ty-a" aria-label="Y umkehren"></label></div></td><td class="mono">−0.08</td></tr>
+                <tr><td><code>Rz</code> · Drehen</td><td><select class="control"><option>Bridge</option><option>Treiber</option></select></td><td><div class="table-check"><input class="check" type="checkbox" id="rz-a"><label class="check-label" for="rz-a" aria-label="Drehen umkehren"></label></div></td><td class="mono">+0.00</td></tr>
+              </tbody>
+            </table></div>
+          </section>
+
+          <section class="sample-card">
+            <div class="card-heading"><h3>Ansichten &amp; Meldungen</h3><small>Tabs · Feedback</small></div>
+            <div class="tabs" role="tablist" aria-label="Diagnoseansicht">
+              <button class="tab" role="tab" aria-selected="true">Übersicht</button><button class="tab" role="tab" aria-selected="false">Mappings</button><button class="tab" role="tab" aria-selected="false">Ereignisse</button>
+            </div>
+            <div class="alert info" style="margin-top:10px"><span class="alert-icon">i</span><div><strong>Hinweis</strong>Änderungen werden erst nach „Sichern und übernehmen“ aktiv.</div></div>
+            <div class="alert success" style="margin-top:7px"><span class="alert-icon">✓</span><div><strong>Gespeichert</strong>Profil wurde erfolgreich übernommen.</div></div>
+            <div class="alert warning" style="margin-top:7px"><span class="alert-icon">!</span><div><strong>Aktion erforderlich</strong>Treiber vor dem Übernehmen neu einlesen.</div></div>
+            <div class="alert error" style="margin-top:7px"><span class="alert-icon">×</span><div><strong>Fehler</strong>Die Konfiguration konnte nicht gelesen werden.</div></div>
+          </section>
+
+          <section class="sample-card">
+            <div class="card-heading"><h3>Kurve &amp; Ereignisprotokoll</h3><small>Vorschau · read-only</small></div>
+            <svg class="curve" viewBox="0 0 320 106" role="img" aria-label="Vorschau einer Jog-Kennlinie">
+              <path d="M32 10V82H308" fill="none" stroke="#42494d" stroke-width="1"/>
+              <path d="M32 82H308M32 59H308M32 36H308M101 10V82M170 10V82M239 10V82" fill="none" stroke="#303639" stroke-width="1" stroke-dasharray="2 4"/>
+              <path d="M32 82 C99 81 155 71 192 52 C235 30 273 16 308 10" fill="none" stroke="#297aa0" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="193" cy="52" r="4" fill="#d9edf6" stroke="#297aa0" stroke-width="2"/>
+              <text x="32" y="98" fill="#929da4" font-size="9">Drehung</text><text x="265" y="98" fill="#929da4" font-size="9">Tempo</text>
+            </svg>
+            <div class="log" style="margin-top:9px"><div><time>10:42:08</time> <span class="ok">● Gerät verbunden</span></div><div><time>10:42:09</time> <span class="blue">↳ Profil: Google Chrome</span></div><div><time>10:42:11</time> HID-Report empfangen <span class="mono">0x01</span></div></div>
+          </section>
+
+          <section class="sample-card">
+            <div class="card-heading"><h3>Aktionen</h3><small>Primär · sekundär · deaktiviert</small></div>
+            <div class="button-row"><button class="btn primary">Sichern und übernehmen</button><button class="btn">Abbrechen</button><button class="btn danger">Entfernen</button><button class="btn" disabled>Nicht verfügbar</button></div>
+            <p class="action-note" aria-live="polite"></p>
+          </section>
+        </div>
+        <footer class="variant-foot"><strong>Charakter:</strong> maximal effizient, passend für datenreiche Dialoge. <strong>Trade-off:</strong> weniger Luft zwischen Bereichen.</footer>
+      </article>
+
+      <article class="variant" data-variant="balanced">
+        <header class="variant-head">
+          <div class="variant-title-row"><h2>02 · Ausgewogen</h2><span class="variant-number">DICHTE B</span></div>
+          <p>Ruhiger Rhythmus mit klar getrennten Flächen.</p>
+        </header>
+        <div class="sample">
+          <section class="sample-card">
+            <div class="card-heading"><h3>Gerät &amp; Profil</h3><span class="pill"><i class="status-dot"></i>Verbunden</span></div>
+            <div class="device-row">
+              <div class="device-icon" aria-hidden="true">✣</div>
+              <div class="device-copy"><strong>SpaceMouse Wireless</strong><small>USB-Empfänger · bereit</small></div>
+              <span class="status-dot" aria-label="Verbunden"></span>
+            </div>
+            <div class="profile-line">
+              <label for="profile-b">Profil</label>
+              <select class="control" id="profile-b"><option>Google Chrome</option><option>Adobe Premiere Pro</option></select>
+            </div>
+          </section>
+
+          <section class="sample-card">
+            <div class="card-heading"><h3>Eingaben</h3><small>Checkbox · Auswahl · Zahlen</small></div>
+            <div class="field-grid">
+              <div class="field full check-row">
+                <div class="check-wrap"><input class="check" type="checkbox" id="bridge-b" checked><label class="check-label" for="bridge-b">Bridge-Ausgabe aktivieren</label></div>
+                <div class="check-wrap"><input class="check" type="checkbox" id="reverse-b"><label class="check-label" for="reverse-b">Richtung umkehren</label></div>
+                <div class="check-wrap"><input class="check" type="checkbox" id="disabled-b" disabled><label class="check-label" for="disabled-b">Nicht verfügbar</label></div>
+              </div>
+              <div class="field"><label for="threshold-b">Auslösung</label><div class="unit-control"><input class="control" id="threshold-b" type="number" value="45" min="15" max="95"><span class="unit">%</span></div></div>
+              <div class="field"><label for="mode-b">Verhalten</label><select class="control" id="mode-b"><option>Kontinuierliches Jog</option><option>Einzelbild + Jog</option></select></div>
+              <div class="field full"><label for="search-b">Eingabefeld</label><input class="control" id="search-b" type="text" value="SpaceMouse Wireless" placeholder="Suchen oder eingeben"></div>
+              <div class="field full">
+                <label>Darstellung (Radiobuttons)</label>
+                <div class="radio-group"><input class="radio" type="radio" name="density-b" id="density-b1" checked><label class="radio-label" for="density-b1">Auto</label><input class="radio" type="radio" name="density-b" id="density-b2"><label class="radio-label" for="density-b2">Hell</label><input class="radio" type="radio" name="density-b" id="density-b3"><label class="radio-label" for="density-b3">Dunkel</label></div>
+              </div>
+            </div>
+            <p class="hint">Fokusrahmen, Auswahl, deaktivierter Zustand und native Bedienung.</p>
+          </section>
+
+          <section class="sample-card">
+            <div class="card-heading"><h3>Mapping-Tabelle</h3><small>Achsen · Status · Aktion</small></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Achse</th><th>Modus</th><th>Umkehr.</th><th>Wert</th></tr></thead>
+              <tbody>
+                <tr><td><code>Tx</code> · X</td><td><select class="control"><option>Scrollen</option><option>Treiber</option></select></td><td><div class="table-check"><input class="check" type="checkbox" id="tx-b" checked><label class="check-label" for="tx-b" aria-label="X umkehren"></label></div></td><td class="mono">+0.42</td></tr>
+                <tr><td><code>Ty</code> · Y</td><td><select class="control"><option>Zoom</option><option>Treiber</option></select></td><td><div class="table-check"><input class="check" type="checkbox" id="ty-b"><label class="check-label" for="ty-b" aria-label="Y umkehren"></label></div></td><td class="mono">−0.08</td></tr>
+                <tr><td><code>Rz</code> · Drehen</td><td><select class="control"><option>Bridge</option><option>Treiber</option></select></td><td><div class="table-check"><input class="check" type="checkbox" id="rz-b"><label class="check-label" for="rz-b" aria-label="Drehen umkehren"></label></div></td><td class="mono">+0.00</td></tr>
+              </tbody>
+            </table></div>
+          </section>
+
+          <section class="sample-card">
+            <div class="card-heading"><h3>Ansichten &amp; Meldungen</h3><small>Tabs · Feedback</small></div>
+            <div class="tabs" role="tablist" aria-label="Diagnoseansicht">
+              <button class="tab" role="tab" aria-selected="true">Übersicht</button><button class="tab" role="tab" aria-selected="false">Mappings</button><button class="tab" role="tab" aria-selected="false">Ereignisse</button>
+            </div>
+            <div class="alert info" style="margin-top:10px"><span class="alert-icon">i</span><div><strong>Hinweis</strong>Änderungen werden erst nach „Sichern und übernehmen“ aktiv.</div></div>
+            <div class="alert success" style="margin-top:7px"><span class="alert-icon">✓</span><div><strong>Gespeichert</strong>Profil wurde erfolgreich übernommen.</div></div>
+            <div class="alert warning" style="margin-top:7px"><span class="alert-icon">!</span><div><strong>Aktion erforderlich</strong>Treiber vor dem Übernehmen neu einlesen.</div></div>
+            <div class="alert error" style="margin-top:7px"><span class="alert-icon">×</span><div><strong>Fehler</strong>Die Konfiguration konnte nicht gelesen werden.</div></div>
+          </section>
+
+          <section class="sample-card">
+            <div class="card-heading"><h3>Kurve &amp; Ereignisprotokoll</h3><small>Vorschau · read-only</small></div>
+            <svg class="curve" viewBox="0 0 320 106" role="img" aria-label="Vorschau einer Jog-Kennlinie">
+              <path d="M32 10V82H308" fill="none" stroke="#42494d" stroke-width="1"/>
+              <path d="M32 82H308M32 59H308M32 36H308M101 10V82M170 10V82M239 10V82" fill="none" stroke="#303639" stroke-width="1" stroke-dasharray="2 4"/>
+              <path d="M32 82 C99 81 155 71 192 52 C235 30 273 16 308 10" fill="none" stroke="#297aa0" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="193" cy="52" r="4" fill="#d9edf6" stroke="#297aa0" stroke-width="2"/>
+              <text x="32" y="98" fill="#929da4" font-size="9">Drehung</text><text x="265" y="98" fill="#929da4" font-size="9">Tempo</text>
+            </svg>
+            <div class="log" style="margin-top:9px"><div><time>10:42:08</time> <span class="ok">● Gerät verbunden</span></div><div><time>10:42:09</time> <span class="blue">↳ Profil: Google Chrome</span></div><div><time>10:42:11</time> HID-Report empfangen <span class="mono">0x01</span></div></div>
+          </section>
+
+          <section class="sample-card">
+            <div class="card-heading"><h3>Aktionen</h3><small>Primär · sekundär · deaktiviert</small></div>
+            <div class="button-row"><button class="btn primary">Sichern und übernehmen</button><button class="btn">Abbrechen</button><button class="btn danger">Entfernen</button><button class="btn" disabled>Nicht verfügbar</button></div>
+            <p class="action-note" aria-live="polite"></p>
+          </section>
+        </div>
+        <footer class="variant-foot"><strong>Charakter:</strong> ausgewogen und nah am aktuellen VS-Code-Dark-Look. <strong>Trade-off:</strong> mittlerer Platzbedarf.</footer>
+      </article>
+
+      <article class="variant" data-variant="spacious">
+        <header class="variant-head">
+          <div class="variant-title-row"><h2>03 · Großzügig</h2><span class="variant-number">DICHTE C</span></div>
+          <p>Mehr Ruhe, größere Ziele und stärkere Flächentrennung.</p>
+        </header>
+        <div class="sample">
+          <section class="sample-card">
+            <div class="card-heading"><h3>Gerät &amp; Profil</h3><span class="pill"><i class="status-dot"></i>Verbunden</span></div>
+            <div class="device-row">
+              <div class="device-icon" aria-hidden="true">✣</div>
+              <div class="device-copy"><strong>SpaceMouse Wireless</strong><small>USB-Empfänger · bereit</small></div>
+              <span class="status-dot" aria-label="Verbunden"></span>
+            </div>
+            <div class="profile-line">
+              <label for="profile-c">Profil</label>
+              <select class="control" id="profile-c"><option>Google Chrome</option><option>Adobe Premiere Pro</option></select>
+            </div>
+          </section>
+
+          <section class="sample-card">
+            <div class="card-heading"><h3>Eingaben</h3><small>Checkbox · Auswahl · Zahlen</small></div>
+            <div class="field-grid">
+              <div class="field full check-row">
+                <div class="check-wrap"><input class="check" type="checkbox" id="bridge-c" checked><label class="check-label" for="bridge-c">Bridge-Ausgabe aktivieren</label></div>
+                <div class="check-wrap"><input class="check" type="checkbox" id="reverse-c"><label class="check-label" for="reverse-c">Richtung umkehren</label></div>
+                <div class="check-wrap"><input class="check" type="checkbox" id="disabled-c" disabled><label class="check-label" for="disabled-c">Nicht verfügbar</label></div>
+              </div>
+              <div class="field"><label for="threshold-c">Auslösung</label><div class="unit-control"><input class="control" id="threshold-c" type="number" value="45" min="15" max="95"><span class="unit">%</span></div></div>
+              <div class="field"><label for="mode-c">Verhalten</label><select class="control" id="mode-c"><option>Kontinuierliches Jog</option><option>Einzelbild + Jog</option></select></div>
+              <div class="field full"><label for="search-c">Eingabefeld</label><input class="control" id="search-c" type="text" value="SpaceMouse Wireless" placeholder="Suchen oder eingeben"></div>
+              <div class="field full">
+                <label>Darstellung (Radiobuttons)</label>
+                <div class="radio-group"><input class="radio" type="radio" name="density-c" id="density-c1" checked><label class="radio-label" for="density-c1">Auto</label><input class="radio" type="radio" name="density-c" id="density-c2"><label class="radio-label" for="density-c2">Hell</label><input class="radio" type="radio" name="density-c" id="density-c3"><label class="radio-label" for="density-c3">Dunkel</label></div>
+              </div>
+            </div>
+            <p class="hint">Fokusrahmen, Auswahl, deaktivierter Zustand und native Bedienung.</p>
+          </section>
+
+          <section class="sample-card">
+            <div class="card-heading"><h3>Mapping-Tabelle</h3><small>Achsen · Status · Aktion</small></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Achse</th><th>Modus</th><th>Umkehr.</th><th>Wert</th></tr></thead>
+              <tbody>
+                <tr><td><code>Tx</code> · X</td><td><select class="control"><option>Scrollen</option><option>Treiber</option></select></td><td><div class="table-check"><input class="check" type="checkbox" id="tx-c" checked><label class="check-label" for="tx-c" aria-label="X umkehren"></label></div></td><td class="mono">+0.42</td></tr>
+                <tr><td><code>Ty</code> · Y</td><td><select class="control"><option>Zoom</option><option>Treiber</option></select></td><td><div class="table-check"><input class="check" type="checkbox" id="ty-c"><label class="check-label" for="ty-c" aria-label="Y umkehren"></label></div></td><td class="mono">−0.08</td></tr>
+                <tr><td><code>Rz</code> · Drehen</td><td><select class="control"><option>Bridge</option><option>Treiber</option></select></td><td><div class="table-check"><input class="check" type="checkbox" id="rz-c"><label class="check-label" for="rz-c" aria-label="Drehen umkehren"></label></div></td><td class="mono">+0.00</td></tr>
+              </tbody>
+            </table></div>
+          </section>
+
+          <section class="sample-card">
+            <div class="card-heading"><h3>Ansichten &amp; Meldungen</h3><small>Tabs · Feedback</small></div>
+            <div class="tabs" role="tablist" aria-label="Diagnoseansicht">
+              <button class="tab" role="tab" aria-selected="true">Übersicht</button><button class="tab" role="tab" aria-selected="false">Mappings</button><button class="tab" role="tab" aria-selected="false">Ereignisse</button>
+            </div>
+            <div class="alert info" style="margin-top:10px"><span class="alert-icon">i</span><div><strong>Hinweis</strong>Änderungen werden erst nach „Sichern und übernehmen“ aktiv.</div></div>
+            <div class="alert success" style="margin-top:7px"><span class="alert-icon">✓</span><div><strong>Gespeichert</strong>Profil wurde erfolgreich übernommen.</div></div>
+            <div class="alert warning" style="margin-top:7px"><span class="alert-icon">!</span><div><strong>Aktion erforderlich</strong>Treiber vor dem Übernehmen neu einlesen.</div></div>
+            <div class="alert error" style="margin-top:7px"><span class="alert-icon">×</span><div><strong>Fehler</strong>Die Konfiguration konnte nicht gelesen werden.</div></div>
+          </section>
+
+          <section class="sample-card">
+            <div class="card-heading"><h3>Kurve &amp; Ereignisprotokoll</h3><small>Vorschau · read-only</small></div>
+            <svg class="curve" viewBox="0 0 320 106" role="img" aria-label="Vorschau einer Jog-Kennlinie">
+              <path d="M32 10V82H308" fill="none" stroke="#42494d" stroke-width="1"/>
+              <path d="M32 82H308M32 59H308M32 36H308M101 10V82M170 10V82M239 10V82" fill="none" stroke="#303639" stroke-width="1" stroke-dasharray="2 4"/>
+              <path d="M32 82 C99 81 155 71 192 52 C235 30 273 16 308 10" fill="none" stroke="#297aa0" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="193" cy="52" r="4" fill="#d9edf6" stroke="#297aa0" stroke-width="2"/>
+              <text x="32" y="98" fill="#929da4" font-size="9">Drehung</text><text x="265" y="98" fill="#929da4" font-size="9">Tempo</text>
+            </svg>
+            <div class="log" style="margin-top:9px"><div><time>10:42:08</time> <span class="ok">● Gerät verbunden</span></div><div><time>10:42:09</time> <span class="blue">↳ Profil: Google Chrome</span></div><div><time>10:42:11</time> HID-Report empfangen <span class="mono">0x01</span></div></div>
+          </section>
+
+          <section class="sample-card">
+            <div class="card-heading"><h3>Aktionen</h3><small>Primär · sekundär · deaktiviert</small></div>
+            <div class="button-row"><button class="btn primary">Sichern und übernehmen</button><button class="btn">Abbrechen</button><button class="btn danger">Entfernen</button><button class="btn" disabled>Nicht verfügbar</button></div>
+            <p class="action-note" aria-live="polite"></p>
+          </section>
+        </div>
+        <footer class="variant-foot"><strong>Charakter:</strong> komfortabel bei Touch und längeren Sitzungen. <strong>Trade-off:</strong> benötigt mehr Platz, weniger Daten pro Ansicht.</footer>
+      </article>
+    </section>
+
+    <aside class="compare-note">
+      <strong>Vergleich auf einen Blick:</strong>
+      Kompakt = geringste Höhe und engste Ecken · Ausgewogen = mittlere Abstände, gut lesbare Gruppen · Großzügig = größere Ziele und stärkere Oberflächenkontraste.
+      Alle drei verwenden dasselbe Button- und Checkbox-Akzentblau (<span class="mono">#297AA0</span>), dieselben Beschriftungen und denselben Inhalt.
+    </aside>
+  </main>
+  <script>
+    document.querySelectorAll(".variant").forEach(function (variant) {
+      variant.querySelectorAll('[role="tab"]').forEach(function (tab) {
+        tab.addEventListener("click", function () {
+          variant.querySelectorAll('[role="tab"]').forEach(function (item) {
+            item.setAttribute("aria-selected", String(item === tab));
+          });
+        });
+      });
+      var primary = variant.querySelector(".btn.primary");
+      primary.addEventListener("click", function () {
+        variant.querySelector(".action-note").textContent = "Vorschau: Änderungen würden jetzt übernommen.";
+      });
+    });
+    document.querySelectorAll(".check").forEach(function (checkbox) {
+      if (checkbox.id === "disabled-b") checkbox.indeterminate = true;
+    });
+  </script>
+</body>
+</html>

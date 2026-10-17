@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AppCfg xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Default="false" CfgFormatVersion="1.3" ThisFileVersion="1.2">
+  <AppInfo>
+    <Signature>
+      <Name>STR_CHROME</Name>
+      <ExecutableName>CHROME.EXE</ExecutableName>
+    </Signature>
+  </AppInfo>
+  <CfgProperties>
+    <ID>ID_STR_CHROME</ID>
+    <Name>STR_CHROME</Name>
+    <InheritsFromID>ID_STR_CHROME</InheritsFromID>
+  </CfgProperties>
+  <Devices>
+    <Device>
+      <ID>ID_Standard_3D_Mouse</ID>
+      <AxisBank Default="true">
+        <ID>Default</ID>
+        <Name>STR_DEFAULT_BANK</Name>
+        <Axis>
+          <Enabled>true</Enabled>
+          <Input>
+            <ActionID>HIDMultiAxis_Rx</ActionID>
+            <Min>-512</Min>
+            <Max>511</Max>
+          </Input>
+          <Output>
+            <ActionID>HIDMouse_Wheel</ActionID>
+            <Reversed>true</Reversed>
+          </Output>
+        </Axis>
+        <Axis>
+          <Enabled>true</Enabled>
+          <Input>
+            <ActionID>HIDMultiAxis_Z</ActionID>
+            <Min>-512</Min>
+            <Max>511</Max>
+            <Deadband>35</Deadband>
+          </Input>
+          <Output>
+            <ActionID>HIDMouse_Wheel</ActionID>
+            <Scale>0.50</Scale>
+            <Reversed>false</Reversed>
+            <Modifiers>
+              <Modifier>Control</Modifier>
+            </Modifiers>
+          </Output>
+        </Axis>
+      </AxisBank>
+    </Device>
+  </Devices>
+</AppCfg>

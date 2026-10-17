@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>SpaceMouse Bridge - Orbit Cap</title>
+  <desc>Graphite navigation cap surrounded by an open cyan orbit.</desc>
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#555e68"/>
+      <stop offset="1" stop-color="#242a32"/>
+    </linearGradient>
+    <linearGradient id="top" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#8795a4"/>
+      <stop offset="1" stop-color="#414c59"/>
+    </linearGradient>
+    <linearGradient id="orbit" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#297aa0"/>
+      <stop offset="1" stop-color="#70d4f4"/>
+    </linearGradient>
+  </defs>
+  <path d="M35 142 C20 118 63 73 124 52 C185 31 235 44 225 73"
+        fill="none" stroke="#297aa0" stroke-width="10" stroke-linecap="round"/>
+  <ellipse cx="128" cy="170" rx="52" ry="18" fill="#191f27" stroke="#657382" stroke-width="3"/>
+  <path d="M66 94 C66 76 94 62 128 62 C162 62 190 76 190 94 L190 139
+           C190 160 162 176 128 176 C94 176 66 160 66 139 Z"
+        fill="url(#body)" stroke="#202730" stroke-width="3"/>
+  <ellipse cx="128" cy="94" rx="62" ry="32" fill="url(#top)" stroke="#a3b3c3" stroke-width="3"/>
+  <path d="M86 89 C99 76 130 72 151 79" fill="none" stroke="#b6c7d7"
+        stroke-width="4" stroke-linecap="round" opacity=".65"/>
+  <path d="M218 109 C195 150 141 184 88 192 C44 198 20 183 31 158"
+        fill="none" stroke="url(#orbit)" stroke-width="11" stroke-linecap="round"/>
+  <circle cx="218" cy="109" r="8" fill="#70d4f4"/>
+</svg>

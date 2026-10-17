@@ -1,0 +1,35 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "SpaceMouse: Bauen und Selbsttests",
+			"type": "shell",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"${workspaceFolder}\\build.ps1",
+				"-Test"
+			],
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "SpaceMouse: Diagnose starten",
+			"type": "shell",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"${workspaceFolder}\\build.ps1",
+				"-Test",
+				"-Run"
+			],
+			"problemMatcher": []
+		}
+	]
+}
