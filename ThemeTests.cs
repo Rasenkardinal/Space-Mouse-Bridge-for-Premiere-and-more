@@ -552,8 +552,31 @@ namespace SpaceMouseBridge
             using (var host = new ThemedForm { Size = diagnostic.Size, MinimumSize = diagnostic.MinimumSize })
             {
                 var layout = (TableLayoutPanel)diagnostic.Controls[0];
+                Assert(diagnostic.Width == 900,
+                    "Hauptfenster startet mit etwas reduzierter Breite");
                 host.Controls.Add(layout);
                 host.Show();
+                var profileSelection = (TableLayoutPanel)layout.Controls[1];
+                var toggle = (RoundedButton)profileSelection.GetControlFromPosition(0, 0);
+                var profileSelector = (ComboBox)typeof(DiagnosticWindow).GetField("profileSelector",
+                    BindingFlags.Instance | BindingFlags.NonPublic).GetValue(diagnostic);
+                var profileLabel = profileSelection.Controls.OfType<Label>().Single();
+                var editMappings = profileSelection.Controls.OfType<RoundedButton>()
+                    .Single(button => button != toggle);
+                Assert(profileLabel.Text == "Profilauswahl:" &&
+                    profileSelection.GetColumn(profileLabel) == 2 &&
+                    profileSelection.GetColumn(profileSelector) == 3 &&
+                    profileSelection.GetColumn(editMappings) == 5 &&
+                    toggle.Bounds.Right < profileLabel.Bounds.Left &&
+                    profileLabel.Bounds.Right < profileSelector.Bounds.Left &&
+                    profileSelector.Left - profileLabel.Right <= 2 &&
+                    profileSelector.Bounds.Right < editMappings.Bounds.Left &&
+                    Math.Abs(editMappings.Left - profileSelector.Right - 68) <= 2 &&
+                    profileLabel.Bounds.Height == profileSelector.Bounds.Height &&
+                    Math.Abs(profileLabel.Bounds.Top - profileSelector.Bounds.Top) <= 1 &&
+                    Math.Abs(toggle.Left - profileSelection.Padding.Left -
+                        (profileSelection.ClientSize.Width - profileSelection.Padding.Right - editMappings.Right)) <= 1,
+                    "Profilwaehler um den halben Abstand vom Mappingbutton abgerueckt, aeussere Buttons buendig");
                 int compactHeight = host.Height;
                 var log = layout.Controls[9].Controls[0];
                 int compactLogHeight = log.Height;
@@ -561,7 +584,6 @@ namespace SpaceMouseBridge
                 Assert(Math.Abs(compactLogHeight * 2 - log.Height) <= 1,
                     "Ausgabefeld ist bei Standardgroesse exakt halb so hoch wie zuvor");
                 host.Height = compactHeight;
-                var toggle = layout.Controls.OfType<RoundedButton>().Single();
                 foreach (bool expanded in new[] { false, true, false, true })
                 {
                     if (expanded != (layout.RowStyles[2].Height > 0)) toggle.PerformClick();
@@ -579,16 +601,17 @@ namespace SpaceMouseBridge
                     var actionTable = (TableLayoutPanel)actions;
                     var autoStart = (CheckBox)typeof(DiagnosticWindow).GetField("autoStart",
                         BindingFlags.Instance | BindingFlags.NonPublic).GetValue(diagnostic);
-                    Assert(actionTable.Controls.Count == 4 &&
-                        actionTable.Controls.OfType<RoundedButton>().All(button => actionTable.GetRow(button) == 0) &&
-                        actionTable.GetRow(autoStart) == 0 && actionTable.GetColumn(autoStart) == 1 &&
-                        actionTable.GetColumnSpan(actionTable.Controls.OfType<CheckBox>().Single(check => check != autoStart)) == 3,
-                        "Autostart steht mittig zwischen beiden Buttons, Bridge-Ausgabe darunter");
-                    var leftButton = actionTable.GetControlFromPosition(0, 0);
-                    var rightButton = actionTable.GetControlFromPosition(2, 0);
-                    Assert(autoStart.Left >= leftButton.Right && autoStart.Right <= rightButton.Left &&
-                        Math.Abs(autoStart.Left + autoStart.Width / 2 - (leftButton.Right + rightButton.Left) / 2) <= 2,
-                        "Autostart ist im freien Bereich zwischen den Buttons zentriert");
+                    var saveButton = actionTable.Controls.OfType<RoundedButton>().Single();
+                    var bridgeOutput = actionTable.Controls.OfType<CheckBox>().Single(check => check != autoStart);
+                    Assert(actionTable.Controls.Count == 3 &&
+                        actionTable.GetColumn(saveButton) == 0 && actionTable.GetColumn(bridgeOutput) == 1 &&
+                        actionTable.GetColumn(autoStart) == 2 &&
+                        actionTable.GetRow(saveButton) == 0 && actionTable.GetRow(bridgeOutput) == 0 &&
+                        actionTable.GetRow(autoStart) == 0 &&
+                        bridgeOutput.Left >= saveButton.Right && bridgeOutput.Right <= autoStart.Left &&
+                        Math.Abs(bridgeOutput.Left + bridgeOutput.Width / 2 -
+                            (saveButton.Right + autoStart.Left) / 2) <= 2,
+                        "Bridge-Ausgabe steht mittig zwischen Diagnose speichern und Autostart");
                     Assert(actionSurface.Visible && actionSurface.Height >= 90 &&
                         actionSurface.Top >= layout.Controls[9].Bottom &&
                         actionSurface.Bottom <= layout.ClientSize.Height - layout.Padding.Bottom,
@@ -613,6 +636,14 @@ namespace SpaceMouseBridge
                     "Profilwahl bleibt ausserhalb der erweiterten Diagnose");
                 toggle.PerformClick();
                 host.Size = host.MinimumSize;
+                Assert(profileSelection.Controls.Cast<Control>().All(control =>
+                    profileSelection.ClientRectangle.Contains(control.Bounds)),
+                    "Profilwahl und Aktionen bleiben auch bei Mindestbreite sichtbar");
+                var profileControls = profileSelection.Controls.Cast<Control>().ToArray();
+                for (int i = 0; i < profileControls.Length; i++)
+                for (int j = i + 1; j < profileControls.Length; j++)
+                    Assert(!profileControls[i].Bounds.IntersectsWith(profileControls[j].Bounds),
+                        "Profilwahl-Elemente ueberlappen bei Mindestbreite nicht");
                 var minimumActions = layout.Controls[10].Controls[0];
                 Assert(minimumActions.Controls.Cast<Control>().All(control =>
                     minimumActions.ClientRectangle.Contains(control.Bounds)),
@@ -638,35 +669,37 @@ namespace SpaceMouseBridge
 
         private static void DiagnosticRefresh()
         {
-            using (var form = new DiagnosticWindow(0, null))
+            using (var form = new DiagnosticWindow(1, null))
+            using (var host = new ThemedForm { Size = form.Size, MinimumSize = form.MinimumSize })
             {
                 var flags = BindingFlags.Instance | BindingFlags.NonPublic;
                 var reader = (InputReader)typeof(DiagnosticWindow).GetField("reader", flags).GetValue(form);
                 var combo = (ComboBox)typeof(DiagnosticWindow).GetField("devices", flags).GetValue(form);
                 var update = typeof(DiagnosticWindow).GetMethod("UpdateDisplay", flags);
+                var layout = (TableLayoutPanel)form.Controls[0];
+                host.Controls.Add(layout);
                 var navigation = new Device { Vendor = 0x256f, Product = 0xc652 };
                 var auxiliary = new Device { Vendor = 0x256f, Product = 0xc652 };
                 reader.Devices.Add(new IntPtr(1), navigation);
                 reader.Devices.Add(new IntPtr(2), auxiliary);
                 try
                 {
-                    form.CreateControl();
-                    form.Controls[0].Controls.OfType<RoundedButton>().Single().PerformClick();
-                    var profilePanel = form.Controls[0].Controls[0].Controls[0];
-                    var selection = profilePanel.Controls.OfType<FlowLayoutPanel>().Single();
+                    host.Show();
+                    ((RoundedButton)((TableLayoutPanel)layout.Controls[1]).GetControlFromPosition(0, 0)).PerformClick();
+                    var selection = (TableLayoutPanel)layout.Controls[1];
                     var profileLabel = selection.Controls.OfType<Label>().Single();
                     foreach (bool dark in new[] { true, false })
                     {
                         var palette = new ThemePalette(dark, false);
-                        AppTheme.Apply(form, palette);
+                        AppTheme.Apply(host, palette);
                         Assert(profileLabel.BackColor == selection.BackColor &&
-                            selection.BackColor == profilePanel.BackColor,
-                            "Profil bearbeiten hat denselben Hintergrund wie der Profilkopf");
+                            profileLabel.Text == "Profilauswahl:",
+                            "Profilauswahlbeschriftung passt zur Leiste neben dem Diagnosebutton");
                     }
                     update.Invoke(form, null);
                     combo.SelectedIndex = 1;
                     int layouts = 0, selections = 0;
-                    form.Controls[0].Layout += delegate { layouts++; };
+                    layout.Layout += delegate { layouts++; };
                     combo.SelectedIndexChanged += delegate { selections++; };
                     for (int i = 0; i < 30; i++)
                     {
@@ -679,7 +712,7 @@ namespace SpaceMouseBridge
                     Assert(selections == 0 && combo.SelectedIndex == 1 && combo.Items.Count == 2,
                         "Unveraenderte Geraeteauswahl bleibt beim Aktualisieren stabil");
                     int width = combo.Width;
-                    form.Width += 100;
+                    host.Width += 100;
                     Assert(combo.Width > width, "Fenstergroesse passt Geraeteauswahl weiterhin an");
                     reader.Devices.Remove(new IntPtr(1));
                     update.Invoke(form, null);

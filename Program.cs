@@ -56,36 +56,61 @@ namespace SpaceMouseBridge
             startInTray = tray && seconds == 0;
             bridge = new ApplicationMappings(reader.Message);
             Text = "SpaceMouse Bridge - Anwendungsprofile und Diagnose";
-            Size = new Size(1000, 900);
+            Size = new Size(900, 900);
             MinimumSize = new Size(850, 850);
             StartPosition = FormStartPosition.CenterScreen;
             var layout = new TableLayoutPanel {
                 Dock = DockStyle.Fill, Padding = new Padding(12), ColumnCount = 1, RowCount = 11
             };
-            foreach (int height in new[] { 128, 44, 52, 54, 66, 236, 54, 52, 30 })
+            foreach (int height in new[] { 80, 44, 52, 54, 66, 236, 54, 52, 30 })
                 layout.RowStyles.Add(new RowStyle(SizeType.Absolute, height));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 100));
-            var profilePanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Tag = "panel",
+            var profilePanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, Tag = "panel",
                 Padding = new Padding(3, 2, 3, 2) };
             profilePanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
-            profilePanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
             profilePanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             profilePanel.Controls.Add(new Label {
-                Text = "Automatische Profilwahl nach Vordergrundanwendung. Die Auswahl unten dient nur zum Bearbeiten.",
+                Text = "Das Profil wird automatisch anhand der Vordergrundanwendung gewaehlt. Die Profilauswahl dient zum Bearbeiten.",
                 Dock = DockStyle.Fill });
-            var selection = new FlowLayoutPanel { Dock = DockStyle.Fill, Tag = "panel" };
-            selection.Controls.Add(new Label { Text = "Profil bearbeiten:", AutoSize = true, Padding = new Padding(0, 4, 0, 0) });
-            foreach (ApplicationProfile profile in ApplicationProfile.All) profileSelector.Items.Add(profile);
-            profileSelector.SelectedIndex = 0;
-            selection.Controls.Add(profileSelector);
-            profilePanel.Controls.Add(selection);
             profilePanel.Controls.Add(activeProfile);
             layout.Controls.Add(RoundedSurface.Wrap(profilePanel));
             var diagnosticToggle = new RoundedButton {
                 Text = "Erweiterte Diagnose anzeigen", AutoSize = true, Anchor = AnchorStyles.Left
             };
-            layout.Controls.Add(diagnosticToggle);
+            var profileSelection = new TableLayoutPanel {
+                Dock = DockStyle.Fill, ColumnCount = 6, RowCount = 1, Padding = Padding.Empty
+            };
+            profileSelection.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            profileSelection.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            profileSelection.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            profileSelection.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            profileSelection.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 60));
+            profileSelection.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            profileSelection.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            diagnosticToggle.Anchor = AnchorStyles.Left;
+            profileSelection.Controls.Add(diagnosticToggle, 0, 0);
+            var profileLabel = new Label {
+                Text = "Profilauswahl:", AutoSize = false,
+                Width = TextRenderer.MeasureText("Profilauswahl:", Font, Size.Empty,
+                    TextFormatFlags.NoPadding | TextFormatFlags.SingleLine).Width,
+                Height = 26,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Margin = new Padding(0, 7, 2, 0), Anchor = AnchorStyles.Left | AnchorStyles.Top
+            };
+            profileSelection.Controls.Add(profileLabel, 2, 0);
+            foreach (ApplicationProfile profile in ApplicationProfile.All) profileSelector.Items.Add(profile);
+            profileSelector.SelectedIndex = 0;
+            profileSelector.Width = 210;
+            profileSelector.Margin = new Padding(0, 7, 0, 0);
+            profileSelection.Controls.Add(profileSelector, 3, 0);
+            var editMappings = new RoundedButton {
+                Text = "Mappings bearbeiten", AutoSize = true, Enabled = probeSeconds == 0,
+                Margin = new Padding(8, 3, 3, 3), Anchor = AnchorStyles.Right
+            };
+            editMappings.Click += EditMappings;
+            profileSelection.Controls.Add(editMappings, 5, 0);
+            layout.Controls.Add(profileSelection);
             devices.Dock = DockStyle.Fill;
             devices.DropDownStyle = ComboBoxStyle.DropDownList;
             layout.Controls.Add(RoundedSurface.Wrap(devices));
@@ -121,11 +146,10 @@ namespace SpaceMouseBridge
             log.ScrollBars = ScrollBars.Vertical;
             layout.Controls.Add(RoundedSurface.Wrap(log));
             var actions = new TableLayoutPanel { Dock = DockStyle.Fill, Tag = "panel",
-                Padding = new Padding(4, 0, 4, 0), ColumnCount = 3, RowCount = 2 };
+                Padding = new Padding(4, 0, 4, 0), ColumnCount = 3, RowCount = 1 };
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             actions.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            actions.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
             actions.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             var save = new RoundedButton { Text = "Diagnose speichern", AutoSize = true };
             save.Click += Save;
@@ -142,12 +166,8 @@ namespace SpaceMouseBridge
                 UpdateTrayOutput();
             };
             tabSwitch.Anchor = AnchorStyles.Left;
-            actions.Controls.Add(tabSwitch, 0, 1);
-            actions.SetColumnSpan(tabSwitch, 3);
-            var editMappings = new RoundedButton { Text = "Mappings bearbeiten", AutoSize = true, Enabled = probeSeconds == 0, Tag = "primary" };
-            editMappings.Click += EditMappings;
-            editMappings.Anchor = AnchorStyles.Right;
-            actions.Controls.Add(editMappings, 2, 0);
+            tabSwitch.Anchor = AnchorStyles.None;
+            actions.Controls.Add(tabSwitch, 1, 0);
             autoStart.Enabled = probeSeconds == 0;
             autoStart.CheckedChanged += delegate {
                 if (updatingAutoStart) return;
@@ -157,8 +177,8 @@ namespace SpaceMouseBridge
                         "Autostart bei Windows-Anmeldung deaktiviert.");
                 });
             };
-            autoStart.Anchor = AnchorStyles.None;
-            actions.Controls.Add(autoStart, 1, 0);
+            autoStart.Anchor = AnchorStyles.Right;
+            actions.Controls.Add(autoStart, 2, 0);
             var actionSurface = RoundedSurface.Wrap(actions);
             actionSurface.Padding = new Padding(12, 8, 12, 8);
             layout.Controls.Add(actionSurface);
