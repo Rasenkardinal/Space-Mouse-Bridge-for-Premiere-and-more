@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace SpaceMouseBridge
 {
-    public enum PremiereFunction { None, Jog, HorizontalScroll, VerticalScroll, TimelineZoom, Playback, Shortcut, ContextMenu }
+    public enum PremiereFunction { None, Jog, HorizontalScroll, VerticalScroll, TimelineZoom, Playback, Shortcut, ContextMenu, ContextMenu2 }
 
     public sealed class PremiereShortcut
     {
@@ -51,6 +51,7 @@ namespace SpaceMouseBridge
         public PremiereShortcut Positive { get; set; }
 
         internal bool Button { get { return Input == "Button1" || Input == "Button2"; } }
+        internal bool Menu { get { return Function == PremiereFunction.ContextMenu || Function == PremiereFunction.ContextMenu2; } }
         internal bool Discrete { get { return Function == PremiereFunction.Playback || Function == PremiereFunction.Shortcut; } }
         internal bool Wheel { get { return Function == PremiereFunction.HorizontalScroll || Function == PremiereFunction.VerticalScroll; } }
         internal void Validate()
@@ -58,7 +59,7 @@ namespace SpaceMouseBridge
             if (!Enum.IsDefined(typeof(PremiereFunction), Function) || Response == null)
                 throw new InvalidDataException("Ungueltige Premiere-Funktion oder fehlende Kennlinie.");
             Response.Validate();
-            if (Function == PremiereFunction.ContextMenu && !Button)
+            if (Menu && !Button)
                 throw new InvalidDataException("Das Bridge-Menue bitte einer SpaceMouse-Taste zuweisen.");
             if (Trigger <= Response.Deadzone || Trigger > 95)
                 throw new InvalidDataException(Input + ": Ausloeseschwelle muss ueber der Totzone und bei hoechstens 95 % liegen.");
@@ -174,7 +175,9 @@ namespace SpaceMouseBridge
 
         internal void Receive(Device device, PremiereBindings bindings, double now)
         {
-            foreach (PremiereBinding binding in bindings.Items.Where(b => b.Function != PremiereFunction.None))
+            // Menu presses are handled before axis/neutral gating by ApplicationMappings.
+            foreach (PremiereBinding binding in bindings.Items.Where(b =>
+                b.Function != PremiereFunction.None && !b.Menu))
             {
                 State state = For(binding.Input);
                 if (binding.Button)

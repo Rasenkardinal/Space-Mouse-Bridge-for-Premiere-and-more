@@ -11,7 +11,7 @@ using System.Xml;
 namespace SpaceMouseBridge
 {
     public enum AxisMode { KeepDriver, Disabled, Scroll, HorizontalScroll, Zoom, Bridge }
-    public enum BrowserAction { None, Back, Forward, PreviousTab, NextTab, ZoomIn, ZoomOut, ResetZoom, Reload, Home, End }
+    public enum BrowserAction { None, Back, Forward, PreviousTab, NextTab, ZoomIn, ZoomOut, ResetZoom, Reload, Home, End, ContextMenu, ContextMenu2 }
     public enum ButtonMode { KeepDriver, Disabled, Bridge }
 
     public sealed class AxisMapping
@@ -46,6 +46,20 @@ namespace SpaceMouseBridge
         public TimelineScrollSettings TimelineScroll { get; set; }
         public PremiereBindings PremiereInputs { get; set; }
         public PremiereMenuItem[] PremiereMenu { get; set; }
+        public PremiereMenuItem[] ChromeMenu { get; set; }
+        public RadialMenuConfiguration Menu2 { get; set; }
+        private int menuRadius = 77;
+        public int MenuRadius { get { return menuRadius; } set { menuRadius = value; } }
+        private int menuCenterPercent = 33;
+        public int MenuCenterPercent { get { return menuCenterPercent; } set { menuCenterPercent = value; } }
+        private decimal menuBorderWidth = 1m;
+        public decimal MenuBorderWidth { get { return menuBorderWidth; } set { menuBorderWidth = value; } }
+        private decimal menuSegmentGap = 2m;
+        public decimal MenuSegmentGap { get { return menuSegmentGap; } set { menuSegmentGap = value; } }
+        private decimal menuTextSize = 6m;
+        public decimal MenuTextSize { get { return menuTextSize; } set { menuTextSize = value; } }
+        private decimal menuIconSize = 24m;
+        public decimal MenuIconSize { get { return menuIconSize; } set { menuIconSize = value; } }
         internal static readonly string[] AxisNames = { "X", "Y", "Z", "Rx", "Ry", "Rz" };
 
         internal static ApplicationMapping Default()
@@ -64,6 +78,19 @@ namespace SpaceMouseBridge
 
         internal void Validate()
         {
+            if (MenuRadius < 40 || MenuRadius > 200)
+                throw new InvalidDataException("Der Menue-Radius muss zwischen 40 und 200 Pixeln liegen.");
+            if (MenuCenterPercent < 15 || MenuCenterPercent > 60)
+                throw new InvalidDataException("Der Mittelkreis muss zwischen 15 und 60 Prozent des Menue-Radius liegen.");
+            if (MenuBorderWidth < 0.5m || MenuBorderWidth > 5m)
+                throw new InvalidDataException("Die Konturlinienbreite muss zwischen 0,5 und 5 Pixeln liegen.");
+            if (MenuSegmentGap < 0 || MenuSegmentGap > 8)
+                throw new InvalidDataException("Der Segmentabstand muss zwischen 0 und 8 Pixeln liegen.");
+            if (MenuTextSize < 4 || MenuTextSize > 16)
+                throw new InvalidDataException("Die Menue-Textgroesse muss zwischen 4 und 16 pt liegen.");
+            if (MenuIconSize < 8 || MenuIconSize > 48)
+                throw new InvalidDataException("Die Menue-Icongroesse muss zwischen 8 und 48 Pixeln liegen.");
+            if (Menu2 != null) Menu2.Validate();
             if (Version != 1 || Threshold < 15 || Threshold > 95 ||
                 Neutral < 1 || Neutral > 30 || Neutral >= Threshold)
                 throw new InvalidDataException("Ungueltige Profilversion oder Gestenschwellen (Neutral < Ausloesung erforderlich).");
@@ -77,7 +104,9 @@ namespace SpaceMouseBridge
                 if (!Enum.IsDefined(typeof(AxisMode), axis.Mode) || axis.Scale < 0.05m || axis.Scale > 5 ||
                     axis.Deadband < 0 || axis.Deadband > 250 ||
                     !Enum.IsDefined(typeof(BrowserAction), axis.Negative) ||
-                    !Enum.IsDefined(typeof(BrowserAction), axis.Positive))
+                    !Enum.IsDefined(typeof(BrowserAction), axis.Positive) ||
+                    axis.Negative == BrowserAction.ContextMenu || axis.Positive == BrowserAction.ContextMenu ||
+                    axis.Negative == BrowserAction.ContextMenu2 || axis.Positive == BrowserAction.ContextMenu2)
                     throw new InvalidDataException("Ungueltige Zuordnung fuer " + axis.Axis);
             }
             foreach (ButtonMapping button in Buttons)
@@ -89,6 +118,11 @@ namespace SpaceMouseBridge
             if (PremiereInputs != null) PremiereInputs.Validate();
             if (PremiereMenu != null)
                 foreach (var item in PremiereMenu) PremiereMenuItem.Validate(item);
+            if (ChromeMenu != null)
+                foreach (var item in ChromeMenu) PremiereMenuItem.Validate(item);
+            if (Buttons.Any(b => b.Action == BrowserAction.ContextMenu) &&
+                (ChromeMenu == null || ChromeMenu.Length == 0))
+                throw new InvalidDataException("Zum Chrome-Kontextmenue bitte mindestens einen Menueeintrag konfigurieren.");
         }
 
         internal ApplicationMapping Clone()

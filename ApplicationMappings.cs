@@ -99,6 +99,8 @@ namespace SpaceMouseBridge
                 case BrowserAction.Reload: key = 0x74; break;
                 case BrowserAction.Home: modifier = 0x11; key = 0x24; break;
                 case BrowserAction.End: modifier = 0x11; key = 0x23; break;
+                case BrowserAction.ContextMenu: return new Native.KeyboardInput[0];
+                case BrowserAction.ContextMenu2: return new Native.KeyboardInput[0];
                 default: throw new InvalidOperationException("Unbekannte Browseraktion.");
             }
             return modifier == 0 ? new[] { Key(key, false), Key(key, true) } :
@@ -123,6 +125,7 @@ namespace SpaceMouseBridge
     {
         private readonly Dictionary<string, RotationGesture> gestures = new Dictionary<string, RotationGesture>();
         private readonly Dictionary<int, ButtonGesture> buttonGestures = new Dictionary<int, ButtonGesture>();
+        private readonly Dictionary<Device, HashSet<ushort>> heldMenuButtons = new Dictionary<Device, HashSet<ushort>>();
         private readonly TabReleaseGate releaseGate = new TabReleaseGate();
         private readonly Action<string> log;
         private readonly ProfileRouter router = new ProfileRouter();
@@ -140,6 +143,12 @@ namespace SpaceMouseBridge
         internal ApplicationProfile ActiveProfile { get { return router.Current; } }
         internal bool Enabled;
         private bool menuOpen;
+        private BridgeRadialMenu activeMenu;
+        private Device menuButtonSource;
+        private ushort menuButton;
+        private double menuOpenedAt;
+        private const int MenuToggleDelay = 250;
+        private System.Windows.Forms.Timer menuDispatchTimer;
         private long resetVersion;
 
         internal ApplicationMappings(Action<string> logger)
@@ -158,6 +167,7 @@ namespace SpaceMouseBridge
 
         internal void Reset()
         {
+            // Physical button state is intentionally retained across resets.
             resetVersion++;
             StopJogLog();
             gestures.Clear();
@@ -217,10 +227,38 @@ namespace SpaceMouseBridge
 
         internal void Receive(Device device)
         {
-            if (menuOpen) return;
+            HashSet<ushort> pressed = ReadButtonPresses(device);
+            if (menuOpen)
+            {
+                if (activeMenu != null && device == menuButtonSource && pressed.Contains(menuButton) &&
+                    jogClock.Elapsed.TotalMilliseconds - menuOpenedAt >= MenuToggleDelay)
+                    activeMenu.Close();
+                return;
+            }
+            Poll();
+            if (Enabled && router.CanExecute && device.Preparsed != IntPtr.Zero &&
+                !ModifiersDown(true) && pressed.Any())
+            {
+                foreach (ushort button in pressed.OrderBy(b => b))
+                {
+                    bool premiere = router.Current == ApplicationProfile.Premiere;
+                    int menuNumber = MenuForButton(mapping, premiere, button);
+                    if (menuNumber == 0) continue;
+                    menuButtonSource = device;
+                    menuButton = button;
+                    string profileName = premiere ? "Premiere" : "Chrome";
+                    if (menuNumber == 1)
+                        OpenContextMenu(premiere ? mapping.PremiereMenu : mapping.ChromeMenu, profileName);
+                    else
+                    {
+                        var configuration = mapping.Menu2 ?? new RadialMenuConfiguration();
+                        OpenContextMenuCore(configuration.Items, profileName + " Menue 2", configuration);
+                    }
+                    return;
+                }
+            }
             if (device.Axes.Count != 6)
             {
-                Poll();
                 if (router.Current != ApplicationProfile.Premiere || mapping == null || mapping.PremiereInputs == null) return;
                 if (!Enabled || !router.CanExecute || ModifiersDown(true)) { Reset(); return; }
                 if (source == null) source = device;
@@ -229,7 +267,6 @@ namespace SpaceMouseBridge
                 CompletePending();
                 return;
             }
-            Poll();
             if (!Enabled || !router.CanExecute || ModifiersDown(router.Current == ApplicationProfile.Premiere)) { Reset(); return; }
             DateTime now = DateTime.UtcNow;
             if (source != device) Reset();
@@ -266,7 +303,8 @@ namespace SpaceMouseBridge
                 int direction = gesture.Update(axis.Value.Value / range);
                 if (direction != 0) Request(direction < 0 ? assignment.Negative : assignment.Positive, now);
             }
-            foreach (ButtonMapping assignment in mapping.Buttons.Where(b => b.Mode == ButtonMode.Bridge))
+            foreach (ButtonMapping assignment in mapping.Buttons.Where(b =>
+                b.Mode == ButtonMode.Bridge && b.Action != BrowserAction.ContextMenu && b.Action != BrowserAction.ContextMenu2))
             {
                 var groups = device.Buttons.Where(b => b.Available.Contains((ushort)assignment.Button)).ToArray();
                 if (groups.Length == 0 || groups.Any(b => !b.Seen)) continue;
@@ -280,6 +318,36 @@ namespace SpaceMouseBridge
                     Request(assignment.Action, now);
             }
             CompletePending();
+        }
+
+        internal static int MenuForButton(ApplicationMapping mapping, bool premiere, ushort button)
+        {
+            if (premiere)
+            {
+                var binding = mapping.PremiereInputs == null ? null :
+                    mapping.PremiereInputs.Items.SingleOrDefault(b => b.Input == "Button" + button);
+                return binding == null || !binding.Menu ? 0 :
+                    binding.Function == PremiereFunction.ContextMenu ? 1 : 2;
+            }
+            var browser = mapping.Buttons.SingleOrDefault(b => b.Button == button && b.Mode == ButtonMode.Bridge);
+            return browser == null ? 0 : browser.Action == BrowserAction.ContextMenu ? 1 :
+                browser.Action == BrowserAction.ContextMenu2 ? 2 : 0;
+        }
+
+        private HashSet<ushort> ReadButtonPresses(Device device)
+        {
+            var pressed = new HashSet<ushort>();
+            if (device == null || device.Buttons.Count == 0) return pressed;
+            HashSet<ushort> held;
+            if (!heldMenuButtons.TryGetValue(device, out held))
+                heldMenuButtons.Add(device, held = new HashSet<ushort>());
+            foreach (ButtonGroup group in device.Buttons.Where(g => g.Seen && g.ValueReport == device.Reports))
+            foreach (ushort button in group.Available)
+            {
+                if (!group.Pressed.Contains(button)) held.Remove(button);
+                else if (held.Add(button)) pressed.Add(button);
+            }
+            return pressed;
         }
 
         private void Request(BrowserAction action, DateTime now)
@@ -309,11 +377,6 @@ namespace SpaceMouseBridge
                     foreach (PremiereEmission emission in premiereBindings.Step(mapping.PremiereInputs, jogClock.Elapsed.TotalMilliseconds, log))
                     {
                         if (Native.GetForegroundWindow() != context || ModifiersDown(true)) { Reset(); return; }
-                        if (emission.Binding.Function == PremiereFunction.ContextMenu)
-                        {
-                            OpenPremiereMenu();
-                            return;
-                        }
                         Send(emission.Inputs, "Premiere " + emission.Binding.Input + ": " + emission.Binding.Function);
                         if (emission.Binding.Button || emission.Binding.Discrete)
                             log("Premiere " + emission.Binding.Input + ": " + emission.Binding.Function);
@@ -358,54 +421,119 @@ namespace SpaceMouseBridge
             log("Chrome: " + (BrowserAction)action);
         }
 
-        private void OpenPremiereMenu()
+        private void OpenContextMenu(PremiereMenuItem[] items, string profileName)
         {
+            if (items == null || items.Length == 0)
+            {
+                OpenContextMenuCore(items, profileName, new RadialMenuConfiguration());
+                return;
+            }
+            OpenContextMenuCore(items, profileName, new RadialMenuConfiguration {
+                Radius = mapping.MenuRadius, CenterPercent = mapping.MenuCenterPercent,
+                BorderWidth = mapping.MenuBorderWidth, SegmentGap = mapping.MenuSegmentGap, TextSize = mapping.MenuTextSize,
+                IconSize = mapping.MenuIconSize
+            });
+        }
+
+        private void OpenContextMenuCore(PremiereMenuItem[] items, string profileName, RadialMenuConfiguration configuration)
+        {
+            if (menuOpen) return;
+            if (items == null || items.Length == 0)
+            {
+                log(profileName + ": Kein Radialmenue konfiguriert. Bitte 'Kontextmenue bearbeiten' oeffnen und alle Segmente belegen.");
+                return;
+            }
             IntPtr target = context;
             uint process = contextProcess;
             ApplicationMapping original = mapping;
             Reset();
             long version = resetVersion;
             menuOpen = true;
+            var popup = new BridgeRadialMenu(items, System.Windows.Forms.Cursor.Position, target, process,
+                configuration.Radius, configuration.CenterPercent, configuration.BorderWidth, configuration.SegmentGap,
+                configuration.TextSize, configuration.IconSize);
+            activeMenu = popup;
+            menuOpenedAt = jogClock.Elapsed.TotalMilliseconds;
+            popup.FormClosed += delegate {
+                PremiereShortcut selected = popup.SelectedShortcut;
+                log(profileName + ": Radialmenue " +
+                    (selected == null ? "geschlossen (" + popup.CloseReason + ")." : "Eintrag gewaehlt: " + selected + "."));
+                activeMenu = null;
+                menuButtonSource = null;
+                menuDispatchTimer = new System.Windows.Forms.Timer { Interval = 25 };
+                System.Windows.Forms.Timer dispatchTimer = menuDispatchTimer;
+                dispatchTimer.Tick += delegate {
+                    dispatchTimer.Stop();
+                    try
+                    {
+                        popup.Dispose();
+                        DispatchContextMenu(selected, target, process, original, version, profileName);
+                    }
+                    catch (Win32Exception ex)
+                    {
+                        Enabled = false;
+                        log("FEHLER: " + profileName + "-Menueaktion fehlgeschlagen: " + ex.Message);
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        Enabled = false;
+                        log("FEHLER: " + profileName + "-Menueaktion fehlgeschlagen: " + ex.Message);
+                    }
+                    finally
+                    {
+                        menuOpen = false;
+                        Reset();
+                        menuDispatchTimer = null;
+                        dispatchTimer.Dispose();
+                    }
+                };
+                dispatchTimer.Start();
+            };
             try
             {
-                log("Premiere: Bridge-Menue geoeffnet; Achsenausgabe pausiert.");
-                using (var popup = new PremiereMenuPopup(mapping.PremiereMenu, System.Windows.Forms.Cursor.Position))
-                {
-                    bool selected = popup.ShowDialog() == System.Windows.Forms.DialogResult.OK && popup.SelectedShortcut != null;
-                    uint foregroundProcess, targetProcess;
-                    uint bridgeProcess;
-                    using (var bridge = Process.GetCurrentProcess()) bridgeProcess = (uint)bridge.Id;
-                    IntPtr foreground = Native.GetForegroundWindow();
-                    Native.GetWindowThreadProcessId(foreground, out foregroundProcess);
-                    Native.GetWindowThreadProcessId(target, out targetProcess);
-                    if (!CanDispatchMenu(Enabled && resetVersion == version && mapping == original,
-                        target, process, targetProcess, foreground, foregroundProcess,
-                        bridgeProcess) || selected && ModifiersDown(true))
-                    {
-                        log("Premiere-Menueaktion verworfen: Fokus, Quelle, Profil oder Modifier haben sich geaendert.");
-                        return;
-                    }
-                    if (foreground != target && !Native.SetForegroundWindow(target))
-                    {
-                        log("Premiere-Menueaktion verworfen: urspruengliches Fenster konnte nicht aktiviert werden.");
-                        return;
-                    }
-                    if (!selected) return;
-                    Native.GetWindowThreadProcessId(target, out targetProcess);
-                    if (Native.GetForegroundWindow() != target || targetProcess != process || ModifiersDown(true))
-                    {
-                        log("Premiere-Menueaktion verworfen: Premiere hat nicht den Eingabefokus.");
-                        return;
-                    }
-                    Send(popup.SelectedShortcut.Inputs(), "Premiere-Menueaktion");
-                    log("Premiere-Menueaktion: " + popup.SelectedShortcut);
-                }
+                log(profileName + ": Bridge-Radialmenue am Mauszeiger geoeffnet.");
+                popup.Show();
             }
-            finally
+            catch
             {
+                activeMenu = null;
+                popup.Dispose();
                 menuOpen = false;
                 Reset();
+                throw;
             }
+        }
+
+        private void DispatchContextMenu(PremiereShortcut selected, IntPtr target, uint process,
+            ApplicationMapping original, long version, string profileName)
+        {
+            uint foregroundProcess, targetProcess;
+            uint bridgeProcess;
+            using (var bridge = Process.GetCurrentProcess()) bridgeProcess = (uint)bridge.Id;
+            IntPtr foreground = Native.GetForegroundWindow();
+            Native.GetWindowThreadProcessId(foreground, out foregroundProcess);
+            Native.GetWindowThreadProcessId(target, out targetProcess);
+            if (!CanDispatchMenu(Enabled && resetVersion == version && mapping == original,
+                target, process, targetProcess, foreground, foregroundProcess,
+                bridgeProcess) || selected != null && ModifiersDown(true))
+            {
+                log(profileName + "-Menueaktion verworfen: Fokus, Quelle, Profil oder Modifier haben sich geaendert.");
+                return;
+            }
+            if (foreground != target && !Native.SetForegroundWindow(target))
+            {
+                log(profileName + "-Menueaktion verworfen: urspruengliches Fenster konnte nicht aktiviert werden.");
+                return;
+            }
+            if (selected == null) return;
+            Native.GetWindowThreadProcessId(target, out targetProcess);
+            if (Native.GetForegroundWindow() != target || targetProcess != process || ModifiersDown(true))
+            {
+                log(profileName + "-Menueaktion verworfen: Zielfenster hat nicht den Eingabefokus.");
+                return;
+            }
+            Send(selected.Inputs(), profileName + "-Menueaktion");
+            log(profileName + "-Menueaktion: " + selected);
         }
 
         internal static bool CanDispatchMenu(bool unchanged, IntPtr target, uint process, uint targetProcess,

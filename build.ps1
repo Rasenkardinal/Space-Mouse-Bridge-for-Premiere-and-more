@@ -11,7 +11,7 @@ if (-not (Test-Path -LiteralPath $compiler)) {
 $outputDirectory = Join-Path $PSScriptRoot 'bin'
 New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
 $executable = Join-Path $outputDirectory 'SpaceMouseBridge.exe'
-$sources = @('Native.cs', 'AutoStart.cs', 'Input.cs', 'AppTypography.cs', 'AppTheme.cs', 'ThemeTests.cs', 'ApplicationMappings.cs', 'ApplicationProfiles.cs', 'Mappings.cs', 'MappingEditor.cs', 'PremiereJog.cs', 'PremiereEditor.cs', 'PremiereBindings.cs', 'PremiereMappingEditor.cs', 'PremiereMenu.cs', 'PremiereBindingTests.cs', 'Program.cs', 'SelfTest.cs', 'MappingTests.cs', 'ProfileTests.cs', 'JogTests.cs') |
+$sources = @('Native.cs', 'AutoStart.cs', 'Input.cs', 'AppTypography.cs', 'AppTheme.cs', 'ThemeTests.cs', 'ApplicationMappings.cs', 'ApplicationProfiles.cs', 'Mappings.cs', 'MappingEditor.cs', 'PremiereJog.cs', 'PremiereEditor.cs', 'PremiereBindings.cs', 'PremiereMappingEditor.cs', 'PremiereMenu.cs', 'MenuIcons.cs', 'PremiereBindingTests.cs', 'Program.cs', 'SelfTest.cs', 'MappingTests.cs', 'ProfileTests.cs', 'JogTests.cs') |
     ForEach-Object { Join-Path $PSScriptRoot $_ }
 & $compiler /nologo /target:winexe /platform:x64 /optimize+ /warnaserror+ `
     "/win32manifest:$PSScriptRoot\app.manifest" `

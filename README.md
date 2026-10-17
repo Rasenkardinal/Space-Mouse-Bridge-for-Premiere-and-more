@@ -15,9 +15,9 @@ frei belegbaren Achsen und Tasten sowie einer einheitlichen dunklen Oberflaeche.
   grafischer Vorschau.
 - **Freie Belegung:** alle sechs Bewegungsachsen und beide unterstuetzten
   SpaceMouse-Tasten sowie ein konfigurierbares Bridge-Kontextmenue.
-- **Chrome:** einzelne Browseraktionen wie Zurueck/Vorwaerts ueber die
-  Bridge; kontinuierliches Scrollen und Zoom ueber das Chrome-Profil des
-  Originaltreibers.
+- **Chrome:** einzelne Browseraktionen wie Zurueck/Vorwaerts und ein
+  konfigurierbares Bridge-Kontextmenue am Mauszeiger; kontinuierliches Scrollen
+  und Zoom ueber das Chrome-Profil des Originaltreibers.
 - **Profilverwaltung:** getrennte Einstellungen, automatische Profilwahl,
   globaler Ausgabeschalter und lokale Sicherung/Ruecknahme beim Speichern.
 - **Alltag und Diagnose:** Windows-Autostart, Tray-Menue und aufklappbare
@@ -107,7 +107,7 @@ auswaehlen und darunter Funktion und Parameter einstellen:
 | Timeline-Zoom | Minus / Gleich-Taste der Premiere-Standardbelegung, **kein** Browser-Strg-Zoom |
 | Wiedergabe / Stopp | Ein kompletter Leertasten-Tipp |
 | Eigenes Tastenkuerzel | Pro Achsenrichtung ein separates aufgezeichnetes Kuerzel; pro Taste ein Kuerzel |
-| Bridge-Menue oeffnen (nur Tasten) | Eigenes Premiere-Listenmenue am Mauszeiger |
+| Bridge-Menue oeffnen (nur Tasten) | Eigenes Premiere-Radialmenue am Mauszeiger |
 
 Tastenkuerzel ueber die Aufzeichnen-Buttons aufnehmen: normale Taste,
 optional mit Strg/Umschalt/Alt; Escape bricht die Aufzeichnung ab. Die
@@ -115,23 +115,115 @@ Aufzeichnung sendet nichts an Premiere. Eigene Premiere-Shortcuts koennen
 von den genannten Standardbefehlen abweichen; dann **Eigenes Tastenkuerzel**
 verwenden. Keine Mauszeigersteuerung oder Panel-Fokuserkennung.
 
+#### Oberflaechenanordnung
+Das freigegebene Layout ist in Hauptfenster und Mapping-Editoren umgesetzt:
+Die Profilauswahl steht naeher an **Mappings bearbeiten**, die Auswahl
+**Menue 1/2** und **Menue bearbeiten** sind rechts ausgerichtet. Im Premiere-
+Editor steht diese Optionszeile etwas hoeher. Bei geringer Chrome-Fensterbreite
+wechseln die Menueoptionen in die zweite Zeile, ohne die uebrigen Optionen
+zu ueberdecken. Benutzerprofile und Menuebelegungen bleiben unveraendert.
+Der Erklaerungstext unter der Chrome-Eingabeliste steht mit zusaetzlichem
+Abstand von 43 Pixeln zur Liste, entsprechend dem aktualisierten UI-Entwurf.
+
 #### Eigenes Premiere-Kontextmenue
 
-Im Premiere-Mapping-Editor **Kontextmenue bearbeiten** oeffnen.
-Das Menue startet **leer**, ohne automatische Befehle. Zeilen hinzufuegen,
-frei benennen und jeweils ein Tastenkuerzel aufzeichnen. Entfernen und
-Nach oben/unten aendern die Reihenfolge. Leere Namen oder fehlende Kuerzel
-werden mit Fehlerhinweis abgewiesen. **Entwurf uebernehmen** uebergibt die
-Liste nur an den Mapping-Entwurf; erst **Sichern und uebernehmen** speichert
-sie mit der vorhandenen Sicherung/Ruecknahme. Abbrechen schreibt nichts.
+Der Chrome-Mapping-Editor zeigt wie der Premiere-Editor alle sechs Achsen und
+beide Tasten in einer gemeinsamen Eingabeliste. In Tastenzeilen steht die Aktion
+in **Positive Richtung / Tastenaktion**; achsenspezifische Felder sind dort
+deaktiviert. Beide Menueaktionen bleiben nur fuer Tasten auswaehlbar.
 
-Anschliessend fuer **Taste 1 oder Taste 2** die Funktion **Bridge-Menue
-oeffnen (nur Tasten)** zuweisen und speichern. Vorhandene Belegungen werden
-nicht automatisch ersetzt. Beim Loslassen der Taste erscheint das eigene
-dunkle Listenmenue am Mauszeiger, innerhalb des Bildschirm-Arbeitsbereichs.
-Eintrag mit normaler Maus anklicken; Escape oder Fokusverlust/Klick ausserhalb
-schliesst ohne Befehl. Ein leeres Menue zeigt einen Einrichtungshinweis.
-Lange Listen sind scrollbar. Es wird kein Premiere-Rechtsklick simuliert.
+Chrome und Premiere besitzen jeweils **zwei unabhaengige Radialmenues**.
+Im Mapping-Editor **Menue 1** oder **Menue 2** auswaehlen und **Menue bearbeiten**
+oeffnen. Jedes Menue hat eigene Eintraege und eigene Darstellungsparameter.
+Bestehende Menueeintraege, Darstellung und Tastenzuweisungen bleiben als
+**Menue 1** erhalten; Menue 2 startet unkonfiguriert, ohne automatische Befehle.
+Die Aktionen **Menue 1 oeffnen** und **Menue 2 oeffnen** sind beiden Tasten
+frei zuweisbar, auch vertauscht oder beide Tasten fuer dasselbe Menue.
+Nicht konfigurierte Menues melden beim Tastendruck Konfigurationsbedarf;
+andere Achsen- und Tastenbelegungen bleiben nutzbar.
+Die **Anzahl Segmente** auf **4 bis 8** einstellen. Alle Segmente teilen den
+Vollkreis gleichmaessig auf; es gibt keine Seiten- oder Navigationssegmente.
+Der **Radius (Pixel)** ist per Regler und Zahlenfeld von **40 bis 180** einstellbar.
+Alte Profile mit bis zu 200 Pixeln bleiben lesbar; Vorschau und Laufzeit begrenzen
+deren Darstellung auf 180. Beim Uebernehmen im Menueeditor wird der begrenzte Wert gespeichert.
+Die 1:1-Vorschau reagiert sofort, einschliesslich Beschriftung und Klickflaechen.
+Beim Aendern des Radius bleibt die Kreismitte auf der Vorschauflaeche fest;
+das Menue waechst oder schrumpft gleichmaessig um diesen Punkt. Die Vorschau
+benoetigt keine Scrollbalken.
+Der Radius wird getrennt pro Profil gespeichert; bestehende Profile behalten
+77 Pixel (164 x 164 Pixel inklusive Rand). Abbrechen veraendert den Radius nicht.
+**Mittelkreis (%)** stellt den Mittelkreisradius per Regler und Zahlenfeld
+auf 15 bis 60 Prozent des Aussenradius ein (Standard: 33 Prozent).
+Vorschau, Segmentflaechen und Fensterkontur passen sich sofort an.
+Der Wert wird ebenfalls pro Profil gespeichert. Der Mittelkreis verwendet
+dieselbe Hintergrundfarbe wie die nicht ausgewaehlten Segmente.
+Radius- und Mittelkreis-Regler stehen nebeneinander. **Konturlinie (Pixel)**
+stellt die Segmentkonturen von 0,5 bis 5 Pixeln mit sofortiger Vorschau ein.
+Die Linien werden nach innen gezeichnet; Segmentabstaende und Aussenradius
+bleiben unveraendert. Die Breite bleibt auch bei anderem Radius in Pixeln
+konstant und wird pro Profil gespeichert (Standard: 1 Pixel).
+**Segmentabstand (Pixel)** stellt den freien Abstand von 0 bis 8 Pixeln ein
+(Standard: 2 Pixel). Die gegenueberliegenden geraden Segmentkanten sind
+parallel: Die Luecken bleiben innen und aussen gleich breit, statt sich
+keilfoermig zu verbreitern. Livevorschau, Klickflaechen und Fensterkontur
+verwenden dieselbe Geometrie. Der Abstand wird pro Profil gespeichert.
+Der Groessenregler unter der Segmentanzahl ist kontextsensitiv: Bei einem
+Textsegment zeigt er **Text (pt)** (4 bis 16 pt, Standard 6), bei einem
+Iconsegment **Icon (px)** (8 bis 48, Standard 24). Jedes Menue speichert eine
+Textgroesse und eine separate Icongroesse fuer alle entsprechenden Segmente.
+Segment- und Darstellungswechsel behalten beide Werte. Vorschau und echtes
+Menue aktualisieren sich identisch. Beide Groessen skalieren mit dem Radius;
+Icon-Pixel beziehen sich auf den Standardradius 77. Die tatsaechliche Icongroesse
+wird durch den verfuegbaren Platz im Segment begrenzt.
+Die Vorschau zeigt das Menue in Originalgroesse mit derselben
+Zeichenroutine und Beschriftung wie zur Laufzeit. Segment- und Mittelkreisflaechen
+verwenden das Flaechengrau der App, Konturen deren graue Eingabefeldumrandung;
+die ausgewaehlten Segmente bleiben blau hervorgehoben.
+Ein Segment direkt anklicken, rechts den Namen eingeben und das Tastenkuerzel
+aufzeichnen. Das ausgewaehlte Segment ist blau; Aenderungen erscheinen sofort.
+Pro Segment unter **Darstellung im Segment** zwischen **Text** und **Icon**
+waehlen. Die Iconliste zeigt Symbol und Namen; Auswahl und Vorschau aktualisieren
+sich sofort. Text- und Iconsegmente koennen in beiden Menues beliebig gemischt
+werden, auch in Chrome. Name/Beschreibung und Kuerzel bleiben fuer jedes Segment
+erforderlich. Icons aendern nicht den ausgefuehrten Shortcut; die Funktion muss
+zum eigenen Premiere- bzw. Chrome-Kuerzel passen.
+Der eingebaute einfarbige Satz im Stil **A1 - Weiche Kontur** enthaelt
+33 eigenstaendig gezeichnete Vektorsymbole:
+Auswahl, Spurauswahl, CUT / Rasierklinge, Hand, Zoom, Text, Stift, Wiedergabe/Pause, Stopp,
+Schritt vor/zurueck, Marker, Rueckgaengig/Wiederholen, Speichern, Ripple/Rolling
+Edit, Slip/Slide, In/Out, Einfuegen/Ueberschreiben, Verknuepfen, Magnet, Stumm,
+Clip teilen, Trimmen, separates Play und Pause, Rendern, Entfernen und Luecke
+schliessen. CUT verwendet eine diagonale Rasierklinge, keine Schere.
+Es gibt nur diesen einen Stil, keine zusaetzliche Icon-Set-Konfiguration.
+Es werden keine Adobe-Grafiken oder Schrift-Icons verwendet. Die Symbole skalieren
+mit dem Menue und passen in die Segmentflaeche. Bestehende Menueeintraege bleiben
+unveraendert im Textmodus; fehlende Icongroessen verwenden den bisherigen Wert 24.
+**Jedes Segment muss vollstaendig belegt sein.** Neue Segmente haben keine
+automatischen Befehle; leere Namen oder fehlende Kuerzel verhindern die
+Uebernahme mit Fehlerhinweis. Beim Reduzieren fragt der Editor nach, bevor
+belegte Segmente aus dem Entwurf entfernt werden.
+**Entwurf uebernehmen** uebergibt das Menue nur an den Mapping-Entwurf;
+erst **Sichern und uebernehmen** speichert es mit der vorhandenen
+Sicherung/Ruecknahme. Abbrechen schreibt nichts.
+Alte gespeicherte Menues bleiben lesbar und werden nicht automatisch gekuerzt.
+Alte Premiere-Profile mit Menue-Tastenbelegung, aber ohne Menueeintraege,
+bleiben ebenfalls ladbar; nur die Menueoeffnung meldet Konfigurationsbedarf.
+Ein fehlerhaftes Profil wird nicht als leerer Entwurf zum Ueberschreiben geoeffnet.
+Beim Bearbeiten werden kurze Altmenues auf mindestens vier zu belegende
+Segmente erweitert; mehr als acht Eintraege muessen bewusst reduziert werden.
+
+Anschliessend fuer **Taste 1 oder Taste 2** die Funktion **Menue 1 oeffnen
+(nur Tasten)** oder **Menue 2 oeffnen (nur Tasten)** zuweisen und speichern. Vorhandene Belegungen werden
+nicht automatisch ersetzt. Beim Druecken der Taste erscheint sofort ein eigenes
+Radialmenue mit seinem Mittelpunkt am Mauszeiger; am Bildschirmrand wird es
+in den sichtbaren Bereich verschoben. Achsenwerte oder Neutralstellung sind
+zum Oeffnen nicht erforderlich, auch bei reinen Tasten-Zusatzcollections.
+Halten wiederholt die Oeffnung nicht. Ein erneuter Druck auf dieselbe Taste
+schliesst das Menue ohne Befehl. Zum Schutz vor versehentlichen Doppeldruecken
+werden solche Schliessversuche in den ersten 250 ms nach dem Oeffnen ignoriert.
+Den Mauszeiger in ein Segment bewegen und
+anklicken; Escape oder ein Klick ausserhalb schliesst ohne Befehl.
+Es wird kein Premiere-Rechtsklick simuliert.
 
 Waehrend das Menue offen ist, verarbeitet die Bridge keine Achsen-/Tasten-
 Aktionen. Danach ist erneut Neutralstellung bzw. Loslassen zum Freischalten
@@ -139,14 +231,16 @@ noetig. Ein gewaehltes Kuerzel geht nur an das vorherige Premiere-Fenster:
 Fenster/Prozess, Fokus, Profil-/Quellenwechsel, Pause und Modifier werden
 erneut geprueft. Wechselt der Fokus zu einer anderen App, wird nichts
 gesendet und kein Fokus erzwungen. Fehlgeschlagene Fokuswiederherstellung
-wird protokolliert. Die vorhandene SendInput-Teilfehlerfreigabe bleibt aktiv.
+wird protokolliert. Die Menueanzeige blockiert die Bridge nicht; die vorhandene
+SendInput-Teilfehlerfreigabe bleibt aktiv.
 Das Menue erkennt keine Clips, Panels oder Textfelder; konfigurierte Kuerzel
 wirken auf den zuvor fokussierten Premiere-Bereich. Andere Anwendungen
 bekommen dadurch kein Menue und keine neuen Belegungen.
 Selbsttests oeffnen das echte Popup vor einem isolierten Testfenster und
 pruefen Fokus-Rueckgabe, genau ein Strg+F8 samt Freigabe sowie Abbruch/Reset
-ohne Ausgabe. Weitere Tests pruefen Reihenfolge, leere Menues, Validierung,
-Profilisolation, Speicherung und bytegenaue Ruecknahme.
+ohne Ausgabe. Weitere Tests pruefen Segmentklicks, 4 bis 8 Segmente,
+Vollkreisaufteilung, vollstaendige Belegung, Profilisolation, Speicherung
+und bytegenaue Ruecknahme.
 
 **Kontinuierliche Achsenfunktionen** (Jog, Scrollen, Zoom) besitzen jeweils
 eigene Richtung, Totzone, Minimum/Maximum, Exponent, Wiederholungsverzoegerung,
@@ -361,6 +455,19 @@ Auch jede der beiden Tasten kann eine Aktion beim Loslassen ausfuehren oder
 unveraendert beim Treiber bleiben. **Deaktiviert** unterdrueckt die Taste in
 Chrome. Bei Bridge-Belegung unterdrueckt das Setup die entsprechende
 Treiber-Zuordnung, damit nicht beide Programme dieselbe Eingabe verarbeiten.
+
+Fuer ein eigenes Auswahlmenue **Menue 1** oder **Menue 2** auswaehlen und
+**Menue bearbeiten** oeffnen, 4 bis 8
+Segmente einstellen und direkt per Segmentklick mit Namen und
+Chrome-Tastenkombinationen belegen. Alle Segmente muessen belegt sein; Vorschau
+und Bedienung entsprechen dem Premiere-Menueeditor. Anschliessend einer
+SpaceMouse-Taste die Aktion **Menue 1 oeffnen** oder **Menue 2 oeffnen** zuweisen.
+Beim Druecken erscheint das Radialmenue sofort an der aktuellen Zeigerposition,
+ohne auf Achsenwerte, Neutralstellung oder Loslassen zu warten. Erneutes Druecken
+derselben Taste schliesst es; dabei gilt derselbe Doppeldruckschutz von 250 ms
+nach dem Oeffnen wie in Premiere. Ein
+ausgewaehlter Eintrag sendet seine Tastenkombination an das zuvor aktive
+Chrome-Fenster.
 
 **Treiber unveraendert stellt keine alte Belegung wieder her.** Es behaelt
 den aktuellen XML-Zustand bei, also gegebenenfalls eine zuvor deaktivierte

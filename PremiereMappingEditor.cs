@@ -13,6 +13,13 @@ namespace SpaceMouseBridge
         private readonly string settingsHash;
         private readonly PremiereBindings draft;
         private PremiereMenuItem[] menuItems;
+        private int menuRadius;
+        private int menuCenterPercent;
+        private decimal menuBorderWidth;
+        private decimal menuSegmentGap;
+        private decimal menuTextSize;
+        private decimal menuIconSize;
+        private RadialMenuConfiguration menu2;
         private readonly CheckBox enabled = new CheckBox { Text = "Premiere-Bridge aktivieren", AutoSize = true };
         private readonly DataGridView inputs = new DataGridView {
             Dock = DockStyle.Fill, ReadOnly = true, MultiSelect = false, SelectionMode = DataGridViewSelectionMode.FullRowSelect,
@@ -43,7 +50,7 @@ namespace SpaceMouseBridge
         private static readonly string[] Functions = {
             "Keine Bridge-Aktion", "Jog / Abspielkopf", "Timeline horizontal scrollen",
             "Spuren vertikal scrollen", "Timeline-Zoom", "Wiedergabe / Stopp", "Eigenes Tastenkuerzel",
-            "Bridge-Menue oeffnen (nur Tasten)"
+            "Menue 1 oeffnen (nur Tasten)", "Menue 2 oeffnen (nur Tasten)"
         };
         private static readonly string[] InputLabels = {
             "X - seitlich schieben", "Y - vor/zurueck schieben", "Z - ziehen/druecken",
@@ -69,13 +76,20 @@ namespace SpaceMouseBridge
             settingsHash = MappingStore.Hash(MappingStore.Read(store.SettingsPath));
             draft = PremiereBindings.From(current);
             menuItems = current.PremiereMenu;
+            menuRadius = Math.Min(180, current.MenuRadius);
+            menuCenterPercent = current.MenuCenterPercent;
+            menuBorderWidth = current.MenuBorderWidth;
+            menuSegmentGap = current.MenuSegmentGap;
+            menuTextSize = current.MenuTextSize;
+            menuIconSize = current.MenuIconSize;
+            menu2 = current.Menu2;
             Text = "Adobe Premiere Pro - alle SpaceMouse-Eingaben";
             Size = new Size(1200, 980);
             MinimumSize = new Size(1120, 920);
             StartPosition = FormStartPosition.CenterParent;
             var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(16),
                 ColumnCount = 1, RowCount = 12 };
-            foreach (int height in new[] { 92, 40, 300, 40, 40, 40, 40, 40 })
+            foreach (int height in new[] { 85, 47, 300, 40, 40, 40, 40, 40 })
                 layout.RowStyles.Add(new RowStyle(SizeType.Absolute, height));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 94));
@@ -89,13 +103,35 @@ namespace SpaceMouseBridge
             enabled.Checked = current.Enabled;
             var profileActions = new FlowLayoutPanel { Dock = DockStyle.Fill, Tag = "panel" };
             profileActions.Controls.Add(enabled);
-            var editMenu = new RoundedButton { Text = "Kontextmenue bearbeiten", AutoSize = true };
+            var menuChoice = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 90 };
+            menuChoice.Items.AddRange(new object[] { "Menue 1", "Menue 2" });
+            menuChoice.SelectedIndex = 0;
+            var editMenu = new RoundedButton { Text = "Menue bearbeiten", AutoSize = true };
             editMenu.Click += delegate {
-                using (var editor = new PremiereMenuEditor(menuItems))
-                    if (editor.ShowDialog(this) == DialogResult.OK) menuItems = editor.Items;
+                if (menuChoice.SelectedIndex == 1)
+                {
+                    var configuration = menu2 ?? new RadialMenuConfiguration();
+                    using (var editor = new PremiereMenuEditor(configuration.Items, "Premiere - Menue 2",
+                        configuration.Radius, configuration.CenterPercent, configuration.BorderWidth,
+                        configuration.SegmentGap, configuration.TextSize, configuration.IconSize))
+                        if (editor.ShowDialog(this) == DialogResult.OK) menu2 = editor.CollectConfiguration();
+                    return;
+                }
+                using (var editor = new PremiereMenuEditor(menuItems, "Premiere - Menue 1", menuRadius, menuCenterPercent, menuBorderWidth, menuSegmentGap, menuTextSize, menuIconSize))
+                    if (editor.ShowDialog(this) == DialogResult.OK)
+                    {
+                        menuItems = editor.Items;
+                        menuRadius = editor.MenuRadius;
+                        menuCenterPercent = editor.MenuCenterPercent;
+                        menuBorderWidth = editor.MenuBorderWidth;
+                        menuSegmentGap = editor.MenuSegmentGap;
+                        menuTextSize = editor.MenuTextSize;
+                        menuIconSize = editor.MenuIconSize;
+                    }
             };
-            profileActions.Controls.Add(editMenu);
-            layout.Controls.Add(profileActions);
+            var menuOptions = MappingEditor.MenuOptions(profileActions, menuChoice, editMenu, 30, 23, 5);
+            menuOptions.Margin = new Padding(3, 3, 3, 7);
+            layout.Controls.Add(menuOptions);
             inputs.Columns.Add("Input", "SpaceMouse-Eingabe");
             inputs.Columns.Add("Function", "Funktion");
             inputs.Columns.Add("Keys", "Kuerzel / Verhalten");
@@ -133,7 +169,7 @@ namespace SpaceMouseBridge
             layout.Controls.Add(new Label { Dock = DockStyle.Fill, Text =
                 "Jog: Pfeil links/rechts. Zoom: - / + der Premiere-Standardbelegung. Wiedergabe/Stopp: Leertaste.\r\n" +
                 "Scrollen: Mauszeiger ueber der Timeline; Premiere-Mausradpraeferenz Horizontal. Vertikal nutzt Strg+Mausrad.\r\n" +
-                "Achsen fuer Wiedergabe/Kuerzel: einmal nach Ausloeseschwelle und Rueckkehr in die Totzone. Tasten: beim Loslassen, ohne Haltewiederholung.\r\n" +
+                "Achsen fuer Wiedergabe/Kuerzel: bei Rueckkehr in die Totzone. Tasten: beim Loslassen; Menue 1/2 sofort beim Druecken.\r\n" +
                 "Nach Fokuswechsel/Pause/Datenabbruch neutral stellen. Falscher Panel-/Textfokus kann andere Aktionen ausloesen.\r\n" +
                 "Endtempo: Zusatzbeschleunigung oberhalb 60 % (bzw. oberhalb des Einzelbereichs). Gleich Maximum = kein Zusatz." });
             layout.Controls.Add(feedback);
@@ -181,6 +217,7 @@ namespace SpaceMouseBridge
                 (binding.Button ? "" : (binding.Negative == null ? "fehlt" : binding.Negative.ToString()) + " / ") +
                 (binding.Positive == null ? "fehlt" : binding.Positive.ToString()) :
                 binding.Function == PremiereFunction.None ? "Treiber unveraendert" :
+                binding.Menu ? "Beim Druecken; erneut druecken zum Schliessen" :
                 binding.Button ? "Einmal beim Loslassen" : binding.Discrete ? "Einmal bei Neutralstellung" : "Auslenkungsabhaengig";
         }
 
@@ -228,10 +265,10 @@ namespace SpaceMouseBridge
         {
             if (loading || selected < 0) return;
             PremiereBinding binding = ReadSelection();
-            bool motion = binding.Function != PremiereFunction.None && binding.Function != PremiereFunction.ContextMenu &&
+            bool motion = binding.Function != PremiereFunction.None && !binding.Menu &&
                 !binding.Discrete && !binding.Button;
             reverse.Enabled = binding.Function != PremiereFunction.None && binding.Function != PremiereFunction.Playback &&
-                binding.Function != PremiereFunction.ContextMenu &&
+                !binding.Menu &&
                 !(binding.Button && binding.Function == PremiereFunction.Shortcut);
             foreach (Control control in new Control[] { minimum, maximum, exponent, delay, endRate, behavior })
                 control.Enabled = motion;
@@ -252,8 +289,9 @@ namespace SpaceMouseBridge
                 rates.Text = motion ? string.Format("Rate bei 25 / 50 / 75 / 100 % Auslenkung: {0:0.##} / {1:0.##} / {2:0.##} / {3:0.##} Schritte/s.",
                     binding.Rate(0.25), binding.Rate(0.5), binding.Rate(0.75), binding.Rate(1)) :
                     binding.Function == PremiereFunction.None ? "Keine Bridge-Ausgabe fuer diese Eingabe; der Treiber bleibt unveraendert." :
-                    binding.Function == PremiereFunction.ContextMenu ?
-                    "Oeffnet das Premiere-Menue beim Loslassen. Eigene Eintraege oben unter 'Kontextmenue bearbeiten' anlegen." :
+                    binding.Menu ?
+                    "Oeffnet Menue " + (binding.Function == PremiereFunction.ContextMenu ? "1" : "2") +
+                    " beim Druecken. Oben das Menue auswaehlen und 'Menue bearbeiten' oeffnen." :
                     "Einzelaktion: keine automatische Wiederholung. Fuer Kuerzel auf den entsprechenden Aufzeichnen-Button klicken.";
             }
             catch (InvalidDataException ex) { feedback.Text = ex.Message; preview.Configure(null); rates.Text = ""; }
@@ -277,6 +315,13 @@ namespace SpaceMouseBridge
             ApplicationMapping mapping = current.Clone();
             mapping.PremiereInputs = draft;
             mapping.PremiereMenu = menuItems;
+            mapping.MenuRadius = menuRadius;
+            mapping.MenuCenterPercent = menuCenterPercent;
+            mapping.MenuBorderWidth = menuBorderWidth;
+            mapping.MenuSegmentGap = menuSegmentGap;
+            mapping.MenuTextSize = menuTextSize;
+            mapping.MenuIconSize = menuIconSize;
+            mapping.Menu2 = menu2;
             mapping.Enabled = enabled.Checked;
             store.Profile.Validate(mapping);
             return mapping;

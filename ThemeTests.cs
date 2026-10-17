@@ -980,11 +980,87 @@ namespace SpaceMouseBridge
             }
         }
 
+        private static System.Collections.Generic.IEnumerable<Control> LayoutControls(Control parent)
+        {
+            foreach (Control child in parent.Controls)
+            {
+                yield return child;
+                foreach (Control descendant in LayoutControls(child)) yield return descendant;
+            }
+        }
+
+        private static Point LayoutPosition(Form form, Control control)
+        {
+            return form.PointToClient(control.PointToScreen(Point.Empty));
+        }
+
+        private static void ApprovedLayout()
+        {
+            string temporary = Path.Combine(Path.GetTempPath(), "SpaceMouseBridge-Layout-" + Guid.NewGuid().ToString("N"));
+            using (var main = new DiagnosticWindow(0, null, false, true))
+            using (var chrome = new MappingEditor(new MappingStore(temporary, Path.Combine(temporary, "Chrome.xml")),
+                ApplicationMapping.Default()))
+            using (var premiere = new PremiereMappingEditor(new MappingStore(temporary, null, ApplicationProfile.Premiere),
+                ApplicationProfile.Premiere.EmptyMapping()))
+            {
+                foreach (Form form in new Form[] { main, chrome, premiere })
+                {
+                    form.Show();
+                    Application.DoEvents();
+                    var controls = LayoutControls(form).ToArray();
+                    if (form == main)
+                    {
+                        var choice = controls.OfType<ComboBox>().Single(c => c.Items.Count == ApplicationProfile.All.Length);
+                        var label = controls.OfType<Label>().Single(c => c.Text == "Profilauswahl:");
+                        Assert(LayoutPosition(form, choice) == new Point(460, 101) &&
+                            LayoutPosition(form, label) == new Point(370, 101), "Hauptfenster entspricht UI-Entwurf");
+                        controls.OfType<RoundedButton>().Single(b => b.Text == "Erweiterte Diagnose anzeigen").PerformClick();
+                        Assert(LayoutPosition(form, choice) == new Point(460, 101) &&
+                            LayoutPosition(form, label) == new Point(370, 101), "Offene Diagnose behaelt freigegebene Positionen");
+                    }
+                    else
+                    {
+                        if (form == chrome)
+                        {
+                            var help = controls.OfType<Label>().Single(c => c.Text.StartsWith("Treiber: Verstaerkung"));
+                            Assert(LayoutPosition(form, help) == new Point(19, 543) && help.Height == 62,
+                                "Chrome-Hinweistext entspricht aktualisiertem UI-Entwurf");
+                        }
+                        var choice = controls.OfType<ComboBox>().Single(c => c.Items.Contains("Menue 1"));
+                        var edit = controls.OfType<RoundedButton>().Single(c => c.Text == "Menue bearbeiten");
+                        var fields = choice.Parent.Controls.OfType<FlowLayoutPanel>().Single();
+                        Assert(!fields.Bounds.IntersectsWith(choice.Bounds) && !fields.Bounds.IntersectsWith(edit.Bounds),
+                            "Optionsflaeche verdeckt weder Auswahl noch Menuebutton");
+                        Assert(LayoutPosition(form, choice) == new Point(869, form == chrome ? 115 : 109) &&
+                            LayoutPosition(form, edit) == new Point(form == chrome ? 999 : 982, form == chrome ? 110 : 107),
+                            "Menueauswahl entspricht pixelgenau dem UI-Entwurf");
+                        int previousRight = choice.Parent.ClientSize.Width - edit.Right;
+                        form.Width += 180;
+                        Assert(choice.Parent.ClientSize.Width - edit.Right == previousRight,
+                            "Menuebearbeitung bleibt beim Vergroessern rechts ausgerichtet");
+                        form.Size = form.MinimumSize;
+                        Assert(choice.Bounds.Bottom <= choice.Parent.ClientSize.Height &&
+                            edit.Bounds.Bottom <= edit.Parent.ClientSize.Height &&
+                            edit.Right <= edit.Parent.ClientSize.Width && choice.Right < edit.Left,
+                            "Menuebearbeitung ist bei Mindestgroesse vollstaendig sichtbar");
+                        Assert(!fields.Bounds.IntersectsWith(choice.Bounds) && !fields.Bounds.IntersectsWith(edit.Bounds),
+                            "Optionsflaeche verdeckt Menuebearbeitung auch bei Mindestgroesse nicht");
+                        int fieldsRight = fields.Controls.Cast<Control>().Max(c => c.Right);
+                        Assert(choice.Left >= fieldsRight || choice.Top >= fields.Controls.Cast<Control>().Max(c => c.Bottom),
+                            "Menueauswahl ueberlappt keine vorhandenen Optionen");
+                    }
+                    form.Hide();
+                }
+            }
+            Assert(!Directory.Exists(temporary), "Layouttest schreibt keine Benutzereinstellungen");
+        }
+
         internal static void Run()
         {
             ThemePalette previous = AppTheme.Current;
             try
             {
+                ApprovedLayout();
                 NativeControls();
                 DropDownItems();
                 MappingComboAppearance();

@@ -122,9 +122,9 @@ namespace SpaceMouseBridge
             if (combo != null)
             {
                 combo.FlatStyle = palette.HighContrast ? FlatStyle.Standard : FlatStyle.Flat;
-                combo.DrawMode = palette.Dark ? DrawMode.OwnerDrawFixed : DrawMode.Normal;
+                combo.DrawMode = palette.Dark || combo is MenuIconPicker ? DrawMode.OwnerDrawFixed : DrawMode.Normal;
                 combo.DrawItem -= DrawComboItem;
-                combo.DrawItem += DrawComboItem;
+                if (!(combo is MenuIconPicker)) combo.DrawItem += DrawComboItem;
             }
             TextBoxBase textBox = control as TextBoxBase;
             if (textBox != null)
@@ -730,11 +730,17 @@ namespace SpaceMouseBridge
                             }
                             finally { graphics.Restore(saved); }
                             if (combo.DropDownStyle == ComboBoxStyle.DropDownList)
-                                TextRenderer.DrawText(graphics, combo.Text, combo.Font,
+                            {
+                                var icons = combo as MenuIconPicker;
+                                if (icons != null && icons.SelectedItem != null)
+                                    icons.DrawChoice(graphics, (MenuIcon)icons.SelectedItem, item,
+                                        control.Enabled ? palette.Text : palette.Border);
+                                else TextRenderer.DrawText(graphics, combo.Text, combo.Font,
                                     Rectangle.Inflate(item, -2, 0), control.Enabled ? palette.Text : palette.Border,
                                     TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis |
                                     TextFormatFlags.NoPrefix | (combo.RightToLeft == RightToLeft.Yes ?
                                         TextFormatFlags.RightToLeft | TextFormatFlags.Right : TextFormatFlags.Left));
+                            }
                             Arrow(graphics, button, false, control.Enabled ? palette.Text : palette.Border);
                         }
                         else if (!(control is NumericUpDown))

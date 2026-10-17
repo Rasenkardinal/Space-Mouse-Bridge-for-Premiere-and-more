@@ -25,7 +25,22 @@ namespace SpaceMouseBridge
         internal static void Run()
         {
             var mapping = ApplicationMapping.Default();
+            Assert(mapping.MenuRadius == 77, "Bisheriger Standardradius bleibt erhalten");
+            var legacyRadius = new JavaScriptSerializer().Deserialize<ApplicationMapping>("{}");
+            Assert(legacyRadius.MenuRadius == 77, "Alte JSON-Dateien ohne Radius verwenden 77 Pixel");
+            Assert(legacyRadius.MenuCenterPercent == 33, "Alte Profile verwenden 33 Prozent Mittelkreis");
+            Assert(legacyRadius.MenuBorderWidth == 1m, "Alte Profile verwenden 1 Pixel Konturlinie");
+            Assert(legacyRadius.MenuSegmentGap == 2m, "Alte Profile verwenden 2 Pixel Segmentabstand");
+            Assert(legacyRadius.MenuTextSize == 6m, "Alte Profile behalten die Textgroesse");
+            Assert(legacyRadius.MenuIconSize == 24 && new RadialMenuConfiguration().IconSize == 24,
+                "Alte Menues behalten bisherige Icongroesse");
             mapping.Validate();
+            mapping.MenuRadius = 120;
+            mapping.MenuCenterPercent = 45;
+            mapping.MenuBorderWidth = 3.5m;
+            mapping.MenuSegmentGap = 4.5m;
+            mapping.MenuTextSize = 9m;
+            mapping.MenuIconSize = 32m;
             mapping.Axes.Single(a => a.Axis == "Rx").Mode = AxisMode.Scroll;
             mapping.Axes.Single(a => a.Axis == "Rx").Reverse = true;
             var zoom = mapping.Axes.Single(a => a.Axis == "Z");
@@ -53,13 +68,59 @@ namespace SpaceMouseBridge
             Assert(merged.DocumentElement["CustomKeep"].InnerText == "preserve me", "Fremde XML-Daten erhalten");
             mapping.Buttons[0].Mode = ButtonMode.Bridge;
             mapping.Buttons[0].Action = BrowserAction.NextTab;
+            mapping.ChromeMenu = Enumerable.Range(0, 4).Select(i => new PremiereMenuItem {
+                Name = i == 0 ? "Testmenue" : "Befehl " + i,
+                Display = i == 0 ? MenuSegmentDisplay.Icon : MenuSegmentDisplay.Text, Icon = i == 0 ? MenuIcon.Zoom : MenuIcon.None,
+                Shortcut = new PremiereShortcut { Key = (int)System.Windows.Forms.Keys.F8 + i, Control = true }
+            }).ToArray();
+            mapping.Menu2 = new RadialMenuConfiguration {
+                Items = Enumerable.Range(0, 6).Select(i => new PremiereMenuItem {
+                    Name = "Zweites Menue " + i, Shortcut = new PremiereShortcut { Key = (int)System.Windows.Forms.Keys.F1 + i },
+                    Display = MenuSegmentDisplay.Icon, Icon = MenuIcon.Remove
+                }).ToArray(), Radius = 150, CenterPercent = 50, BorderWidth = 2, SegmentGap = 3, TextSize = 8, IconSize = 18
+            };
             merged = DriverProfile.Parse(DriverProfile.Merge(withExtra, mapping));
             Assert(merged.SelectSingleNode("//Button[Input/ActionID='V3DK_1']/Output/ActionID").InnerText == "",
                 "Treiber-Taste unterdrueckt");
             Assert(merged.SelectSingleNode("//Button[Input/ActionID='HIDButton_1']/Output/ActionID").InnerText == "",
                 "HID-Tastenalias unterdrueckt");
             Assert(merged.SelectNodes("//Button[Input/ActionID='V3DK_2']").Count == 0, "Unbelegte Taste unangetastet");
+            mapping.Buttons[1].Mode = ButtonMode.Bridge;
+            mapping.Buttons[1].Action = BrowserAction.ContextMenu2;
             var invalid = mapping.Clone();
+            invalid.MenuIconSize = 7;
+            Reject(invalid.Validate, "Zu kleine Icongroesse abgewiesen");
+            invalid.MenuIconSize = 49;
+            Reject(invalid.Validate, "Zu grosse Icongroesse abgewiesen");
+            invalid = mapping.Clone();
+            invalid.Menu2.IconSize = 49;
+            Reject(invalid.Validate, "Icongroesse von Menue 2 validiert");
+            invalid = mapping.Clone();
+            invalid.MenuTextSize = 3.9m;
+            Reject(invalid.Validate, "Textgroesse unter 4 pt abgewiesen");
+            invalid.MenuTextSize = 16.1m;
+            Reject(invalid.Validate, "Textgroesse ueber 16 pt abgewiesen");
+            invalid = mapping.Clone();
+            invalid.MenuSegmentGap = -1;
+            Reject(invalid.Validate, "Negativer Segmentabstand abgewiesen");
+            invalid.MenuSegmentGap = 8.1m;
+            Reject(invalid.Validate, "Segmentabstand ueber 8 Pixel abgewiesen");
+            invalid = mapping.Clone();
+            invalid.MenuBorderWidth = 0.4m;
+            Reject(invalid.Validate, "Zu duenne Konturlinie abgewiesen");
+            invalid.MenuBorderWidth = 5.1m;
+            Reject(invalid.Validate, "Zu breite Konturlinie abgewiesen");
+            invalid = mapping.Clone();
+            invalid.MenuCenterPercent = 14;
+            Reject(invalid.Validate, "Mittelkreis unter 15 Prozent abgewiesen");
+            invalid.MenuCenterPercent = 61;
+            Reject(invalid.Validate, "Mittelkreis ueber 60 Prozent abgewiesen");
+            invalid = mapping.Clone();
+            invalid.MenuRadius = 39;
+            Reject(invalid.Validate, "Radius unter 40 abgewiesen");
+            invalid.MenuRadius = 201;
+            Reject(invalid.Validate, "Radius ueber 200 abgewiesen");
+            invalid = mapping.Clone();
             invalid.Neutral = invalid.Threshold;
             Reject(invalid.Validate, "Ungueltige Schwellen abgewiesen");
             invalid = mapping.Clone();
@@ -85,7 +146,9 @@ namespace SpaceMouseBridge
             foreach (BrowserAction action in Enum.GetValues(typeof(BrowserAction)))
             {
                 var inputs = BrowserCommand.Inputs(action);
-                Assert(inputs.Length == (action == BrowserAction.None ? 0 : action == BrowserAction.Reload ? 2 : 4),
+                Assert(inputs.Length == (action == BrowserAction.None || action == BrowserAction.ContextMenu ||
+                    action == BrowserAction.ContextMenu2 ? 0 :
+                    action == BrowserAction.Reload ? 2 : 4),
                     "Paketform " + action);
                 for (uint sent = 0; sent <= inputs.Length; sent++)
                 {
@@ -100,6 +163,21 @@ namespace SpaceMouseBridge
             Assert(BrowserCommand.Inputs(BrowserAction.NextTab)[1].Key == 0x22, "Naechster Tab");
             Assert(BrowserCommand.Inputs(BrowserAction.NextTab)[0].Key == 0x11, "Tabs benutzen Strg");
             Assert(BrowserCommand.Inputs(BrowserAction.Back)[0].Key == 0x12, "Verlauf benutzt Alt");
+            invalid = mapping.Clone();
+            invalid.ChromeMenu = null;
+            invalid.Buttons[0].Action = BrowserAction.ContextMenu;
+            Reject(delegate { ApplicationProfile.Chrome.Validate(invalid); }, "Chrome-Kontextmenue benoetigt Eintraege");
+            invalid = mapping.Clone();
+            invalid.Axes[0].Positive = BrowserAction.ContextMenu;
+            Reject(invalid.Validate, "Chrome-Kontextmenue nur per Taste");
+            invalid.Axes[0].Positive = BrowserAction.ContextMenu2;
+            Reject(invalid.Validate, "Auch Menue 2 nur per Taste");
+            invalid = mapping.Clone();
+            invalid.Menu2.Items = invalid.Menu2.Items.Take(3).ToArray();
+            Reject(invalid.Validate, "Menue 2 benoetigt mindestens vier vollstaendige Segmente");
+            invalid = mapping.Clone();
+            invalid.PremiereMenu = mapping.ChromeMenu;
+            Reject(delegate { ApplicationProfile.Chrome.Validate(invalid); }, "Premiere-Menue bleibt dem Premiere-Profil vorbehalten");
 
             string temporary = Path.Combine(Path.GetTempPath(), "SpaceMouseBridge-Tests-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(temporary);
@@ -110,7 +188,28 @@ namespace SpaceMouseBridge
                 var store = new MappingStore(root, driverPath);
                 using (var editor = new MappingEditor(store, mapping))
                 {
+                    var grid = (System.Windows.Forms.DataGridView)typeof(MappingEditor).GetField("axes",
+                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(editor);
+                    Assert(grid.Rows.Count == 8 && grid.Rows[6].Cells["Axis"].Value.Equals("Taste 1") &&
+                        grid.Rows[7].Cells["Axis"].Value.Equals("Taste 2"),
+                        "Chrome zeigt sechs Achsen und zwei Tasten in einer gemeinsamen Liste");
+                    grid.Rows[6].Cells["Mode"].Value = ButtonMode.Bridge;
+                    grid.Rows[6].Cells["Positive"].Value = BrowserAction.ContextMenu2;
+                    Assert(!grid.Rows[6].Cells["Positive"].ReadOnly &&
+                        grid.Rows[6].Cells["Negative"].ReadOnly && grid.Rows[6].Cells["Scale"].ReadOnly &&
+                        editor.Collect().Buttons.Single(b => b.Button == 1).Action == BrowserAction.ContextMenu2,
+                        "Tastenzeile bietet Menueaktionen ohne Achsenparameter");
+                    grid.Rows[6].Cells["Mode"].Value = mapping.Buttons.Single(b => b.Button == 1).Mode;
+                    grid.Rows[6].Cells["Positive"].Value = mapping.Buttons.Single(b => b.Button == 1).Action;
                     var roundTrip = editor.Collect();
+                    Assert(roundTrip.MenuRadius == 120, "Chrome-Editor erhaelt den Menue-Radius");
+                    Assert(roundTrip.MenuCenterPercent == 45, "Chrome-Editor erhaelt den Mittelkreis");
+                    Assert(roundTrip.MenuBorderWidth == 3.5m, "Chrome-Editor erhaelt die Konturlinie");
+                    Assert(roundTrip.MenuSegmentGap == 4.5m, "Chrome-Editor erhaelt Segmentabstand");
+                    Assert(roundTrip.MenuTextSize == 9m, "Chrome-Editor erhaelt Textgroesse");
+                    Assert(roundTrip.Menu2.Radius == 150 && roundTrip.Menu2.Items.Length == 6 &&
+                        roundTrip.Buttons[1].Action == BrowserAction.ContextMenu2,
+                        "Chrome-Editor erhaelt unabhaengiges zweites Menue und Tastenzuweisung");
                     Assert(roundTrip.Enabled == mapping.Enabled && roundTrip.Neutral == mapping.Neutral &&
                         roundTrip.Threshold == mapping.Threshold, "Editor erhaelt Profilschalter und Schwellen");
                     foreach (AxisMapping expected in mapping.Axes)
@@ -123,12 +222,31 @@ namespace SpaceMouseBridge
                     }
                     Assert(roundTrip.Buttons[0].Mode == ButtonMode.Bridge &&
                         roundTrip.Buttons[0].Action == BrowserAction.NextTab, "Editor erhaelt Tastenbelegung");
+                    Assert(roundTrip.ChromeMenu.Length == 4 && roundTrip.ChromeMenu[0].Name == "Testmenue",
+                        "Chrome-Kontextmenue bleibt im Mapping-Editor erhalten");
                 }
                 string backup = store.Apply(mapping, "absent", "absent");
                 Assert(Directory.Exists(backup), "Sicherung erstellt");
                 ApplicationMapping loaded = store.Load();
+                Assert(loaded.MenuRadius == 120, "Chrome-Menue-Radius persistent gespeichert");
+                Assert(loaded.MenuCenterPercent == 45, "Chrome-Mittelkreis persistent gespeichert");
+                Assert(loaded.MenuBorderWidth == 3.5m, "Konturlinienbreite persistent gespeichert");
+                Assert(loaded.MenuSegmentGap == 4.5m, "Segmentabstand persistent gespeichert");
+                Assert(loaded.MenuTextSize == 9m, "Textgroesse persistent gespeichert");
+                Assert(loaded.MenuIconSize == 32 && loaded.Menu2.IconSize == 18,
+                    "Icongroessen beider Chrome-Menues persistent gespeichert");
+                Assert(loaded.ChromeMenu[0].Display == MenuSegmentDisplay.Icon && loaded.ChromeMenu[0].Icon == MenuIcon.Zoom &&
+                    loaded.ChromeMenu[1].Display == MenuSegmentDisplay.Text && loaded.Menu2.Items[0].Icon == MenuIcon.Remove,
+                    "Text- und Iconsegmente in beiden Chrome-Menues gespeichert");
+                Assert(loaded.Menu2.Radius == 150 && loaded.Menu2.CenterPercent == 50 &&
+                    loaded.Menu2.BorderWidth == 2 && loaded.Menu2.SegmentGap == 3 && loaded.Menu2.TextSize == 8 &&
+                    loaded.Menu2.Items.Length == 6 && loaded.Menu2.Items[0].Shortcut.Key == (int)System.Windows.Forms.Keys.F1 &&
+                    loaded.Buttons[1].Action == BrowserAction.ContextMenu2,
+                    "Zweites Chrome-Menue mit allen Parametern und Taste persistent");
                 Assert(loaded.Axes.Single(a => a.Axis == "Rz").Positive == BrowserAction.Forward, "Bridge-Aktion persistent");
                 Assert(loaded.Buttons[0].Action == BrowserAction.NextTab, "Tastenaktion persistent");
+                Assert(loaded.ChromeMenu.Length == 4 && loaded.ChromeMenu[0].Shortcut.Control,
+                    "Chrome-Kontextmenue persistent gespeichert");
                 Assert(store.Apply(loaded, MappingStore.Hash(MappingStore.Read(driverPath)),
                     MappingStore.Hash(MappingStore.Read(store.SettingsPath))) == null, "Wiederholtes Uebernehmen aendert nichts");
                 Reject(delegate { store.Apply(mapping, "wrong", "absent"); }, "Externe Aenderung beim Speichern erkannt");

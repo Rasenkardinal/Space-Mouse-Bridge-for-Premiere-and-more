@@ -49,7 +49,7 @@ namespace SpaceMouseBridge
         private bool ready;
         internal int ExitCode;
 
-        internal DiagnosticWindow(int seconds, string outputPath, bool tray = false)
+        internal DiagnosticWindow(int seconds, string outputPath, bool tray = false, bool designPreview = false)
         {
             probeSeconds = seconds;
             output = outputPath;
@@ -85,7 +85,7 @@ namespace SpaceMouseBridge
             profileSelection.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             profileSelection.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             profileSelection.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            profileSelection.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 60));
+            profileSelection.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 19));
             profileSelection.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             profileSelection.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             diagnosticToggle.Anchor = AnchorStyles.Left;
@@ -96,13 +96,13 @@ namespace SpaceMouseBridge
                     TextFormatFlags.NoPadding | TextFormatFlags.SingleLine).Width,
                 Height = 26,
                 TextAlign = ContentAlignment.MiddleLeft,
-                Margin = new Padding(0, 7, 2, 0), Anchor = AnchorStyles.Left | AnchorStyles.Top
+                Margin = new Padding(0, 6, 3, 0), Anchor = AnchorStyles.Left | AnchorStyles.Top
             };
             profileSelection.Controls.Add(profileLabel, 2, 0);
             foreach (ApplicationProfile profile in ApplicationProfile.All) profileSelector.Items.Add(profile);
             profileSelector.SelectedIndex = 0;
             profileSelector.Width = 210;
-            profileSelector.Margin = new Padding(0, 7, 0, 0);
+            profileSelector.Margin = new Padding(0, 6, 0, 0);
             profileSelection.Controls.Add(profileSelector, 3, 0);
             var editMappings = new RoundedButton {
                 Text = "Mappings bearbeiten", AutoSize = true, Enabled = probeSeconds == 0,
@@ -216,7 +216,7 @@ namespace SpaceMouseBridge
             compactHeightReduction = (log.Height + 1) / 2;
             MinimumSize = new Size(850, 850 - compactHeightReduction);
             Height -= compactHeightReduction;
-            if (probeSeconds == 0)
+            if (probeSeconds == 0 && !designPreview)
             {
                 trayMenu = new ContextMenuStrip();
                 trayMenu.Items.Add("Einstellungen öffnen", null, delegate { ShowMainWindow(); });
@@ -232,7 +232,7 @@ namespace SpaceMouseBridge
                 UpdateTrayOutput();
             }
             reader.Log += AppendLog;
-            if (probeSeconds == 0)
+            if (probeSeconds == 0 && !designPreview)
                 GuardAutoStart(delegate {
                     autoStart.Checked = AutoStart.IsEnabled(Application.ExecutablePath);
                     if (autoStart.Checked) AutoStart.SetEnabled(true, Application.ExecutablePath);
@@ -247,6 +247,7 @@ namespace SpaceMouseBridge
             timer.Tick += Tick;
             Shown += delegate
             {
+                if (designPreview) return;
                 if (probeSeconds > 0 || startInTray) Hide();
                 if (trayIcon != null) trayIcon.Visible = true;
                 started = DateTime.UtcNow;
@@ -392,8 +393,7 @@ namespace SpaceMouseBridge
             var selected = (ApplicationProfile)profileSelector.SelectedItem;
             if (selected == null) return;
             ProfileSession profile = profiles[selected.Id];
-            if (!profile.Healthy && !profile.Profile.SupportsActions &&
-                !GuardProfile(profile, profile.Load)) return;
+            if (!profile.Healthy && !GuardProfile(profile, profile.Load)) return;
             editingMappings = true;
             bool wasEnabled = tabSwitch.Checked;
             tabSwitch.Checked = false;

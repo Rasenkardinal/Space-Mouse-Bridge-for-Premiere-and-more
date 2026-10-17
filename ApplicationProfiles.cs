@@ -72,6 +72,8 @@ namespace SpaceMouseBridge
                 throw new InvalidDataException("Premiere-Eingaben sind nur im Premiere-Profil verfuegbar.");
             if (Id != Premiere.Id && mapping.PremiereMenu != null)
                 throw new InvalidDataException("Das Premiere-Menue ist nur im Premiere-Profil verfuegbar.");
+            if (Id != Chrome.Id && mapping.ChromeMenu != null)
+                throw new InvalidDataException("Das Chrome-Kontextmenue ist nur im Chrome-Profil verfuegbar.");
             if (!SupportsDriverSetup && mapping.DriverHash != "absent")
                 throw new InvalidDataException(Name + " darf kein Treiber-Setup enthalten.");
         }
