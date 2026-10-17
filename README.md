@@ -18,10 +18,40 @@ frei belegbaren Achsen und Tasten sowie einer einheitlichen dunklen Oberflaeche.
 - **Chrome:** einzelne Browseraktionen wie Zurueck/Vorwaerts und ein
   konfigurierbares Bridge-Kontextmenue am Mauszeiger; kontinuierliches Scrollen
   und Zoom ueber das Chrome-Profil des Originaltreibers.
+- **Konfigurierbare Radialmenues:** zwei unabhaengige Menues pro Chrome- und
+  Premiere-Profil, frei auf die beiden SpaceMouse-Tasten legbar. Jeweils 4 bis 8
+  vollstaendig belegte Segmente mit eigenen Tastenkuerzeln und wahlweise Text
+  oder einem von 33 einfarbigen Werkzeug-/Aktionsicons. Ein visueller Editor
+  zeigt das Menue in Originalgroesse und aktualisiert Aenderungen sofort.
+  Radius (40 bis 180 Pixel), Mittelkreis, Konturen, Segmentabstand sowie
+  getrennte Text- und Icongroessen sind pro Menue einstellbar.
+  Das Menue erscheint am Mauszeiger; ein erneuter Tastendruck schliesst es
+  wieder, mit 250 ms Schutz gegen unbeabsichtigtes Doppelausloesen.
 - **Profilverwaltung:** getrennte Einstellungen, automatische Profilwahl,
   globaler Ausgabeschalter und lokale Sicherung/Ruecknahme beim Speichern.
 - **Alltag und Diagnose:** Windows-Autostart, Tray-Menue und aufklappbare
   HID-Diagnose mit Ereignisprotokoll.
+
+## Screenshots
+
+Aktuelle Oberflaeche mit neutralen Beispielbelegungen; die gezeigten Shortcuts
+im Radialmenue sind Beispiele und keine automatisch installierten Premiere-Befehle.
+
+### Radialmenue mit Icon-Auswahl und Livevorschau
+
+![Radialmenue-Editor mit acht Iconsegmenten und einstellbarer Darstellung](assets/screenshots/radial-menu-editor.png)
+
+### Gemeinsame Eingabeliste im Chrome-Profil
+
+![Chrome-Profil mit sechs Achsen und beiden SpaceMouse-Tasten](assets/screenshots/chrome-profile.png)
+
+### Premiere-Profil
+
+![Premiere-Profil mit Eingabeliste und Parametern fuer die ausgewaehlte Eingabe](assets/screenshots/premiere-profile.png)
+
+### Hauptfenster
+
+![Hauptfenster mit Profilauswahl und aufklappbarer Diagnose](assets/screenshots/main-window.png)
 
 ## Voraussetzungen und Funktionsweise
 
