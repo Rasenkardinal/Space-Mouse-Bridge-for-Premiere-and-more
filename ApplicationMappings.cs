@@ -145,7 +145,6 @@ namespace SpaceMouseBridge
         private bool menuOpen;
         private BridgeRadialMenu activeMenu;
         private Device menuButtonSource;
-        private ushort menuButton;
         private double menuOpenedAt;
         private const int MenuToggleDelay = 250;
         private System.Windows.Forms.Timer menuDispatchTimer;
@@ -230,7 +229,7 @@ namespace SpaceMouseBridge
             HashSet<ushort> pressed = ReadButtonPresses(device);
             if (menuOpen)
             {
-                if (activeMenu != null && device == menuButtonSource && pressed.Contains(menuButton) &&
+                if (activeMenu != null && device == menuButtonSource && (pressed.Contains(1) || pressed.Contains(2)) &&
                     jogClock.Elapsed.TotalMilliseconds - menuOpenedAt >= MenuToggleDelay)
                     activeMenu.Close();
                 return;
@@ -245,7 +244,6 @@ namespace SpaceMouseBridge
                     int menuNumber = MenuForButton(mapping, premiere, button);
                     if (menuNumber == 0) continue;
                     menuButtonSource = device;
-                    menuButton = button;
                     string profileName = premiere ? "Premiere" : "Chrome";
                     if (menuNumber == 1)
                         OpenContextMenu(premiere ? mapping.PremiereMenu : mapping.ChromeMenu, profileName);

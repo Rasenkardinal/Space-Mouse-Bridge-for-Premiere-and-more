@@ -11,7 +11,8 @@ namespace SpaceMouseBridge
         None, Selection, TrackSelect, Razor, Hand, Zoom, Text, Pen,
         PlayPause, Stop, StepBack, StepForward, Marker, Undo, Redo, Save,
         RippleEdit, RollingEdit, Slip, Slide, MarkIn, MarkOut, Insert, Overwrite,
-        Link, Magnet, Mute, Split, Trim, Play, Pause, Render, Remove, CloseGap
+        Link, Magnet, Mute, Split, Trim, Play, Pause, Render, Remove, CloseGap,
+        FullScreen, FullWindow
     }
 
     internal static class MenuIcons
@@ -54,6 +55,8 @@ namespace SpaceMouseBridge
                 case MenuIcon.Link: return "Verknuepfen";
                 case MenuIcon.Magnet: return "Magnet / Einrasten";
                 case MenuIcon.Mute: return "Audio stumm";
+                case MenuIcon.FullScreen: return "Full Screen";
+                case MenuIcon.FullWindow: return "Full Window";
                 default: throw new ArgumentOutOfRangeException("icon");
             }
         }
@@ -195,6 +198,16 @@ namespace SpaceMouseBridge
                         case MenuIcon.Mute:
                             Lines(graphics, pen, 3, 9, 7, 9, 12, 4, 12, 20, 7, 15, 3, 15, 3, 9);
                             Lines(graphics, pen, 16, 9, 22, 15); Lines(graphics, pen, 16, 15, 22, 9); break;
+                        case MenuIcon.FullScreen:
+                            Lines(graphics, pen, 3, 9, 3, 3, 9, 3);
+                            Lines(graphics, pen, 15, 3, 21, 3, 21, 9);
+                            Lines(graphics, pen, 3, 15, 3, 21, 9, 21);
+                            Lines(graphics, pen, 15, 21, 21, 21, 21, 15); break;
+                        case MenuIcon.FullWindow:
+                            RoundedRectangle(graphics, pen, 3, 3, 18, 18, 2);
+                            Lines(graphics, pen, 3, 8, 21, 8);
+                            Lines(graphics, pen, 7, 14, 7, 11, 10, 11);
+                            Lines(graphics, pen, 14, 18, 17, 18, 17, 15); break;
                         default: throw new ArgumentOutOfRangeException("icon");
                     }
                 }

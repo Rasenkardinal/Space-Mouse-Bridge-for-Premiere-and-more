@@ -478,12 +478,16 @@ namespace SpaceMouseBridge
                     "Wechsel zu Text behaelt Iconauswahl ohne sie anzuzeigen");
                 mode.SelectedIndex = 1;
                 foreach (var icon in new[] { MenuIcon.Razor, MenuIcon.Split, MenuIcon.Trim, MenuIcon.Play,
-                    MenuIcon.Pause, MenuIcon.Render, MenuIcon.Remove, MenuIcon.CloseGap })
+                    MenuIcon.Pause, MenuIcon.Render, MenuIcon.Remove, MenuIcon.CloseGap,
+                    MenuIcon.FullScreen, MenuIcon.FullWindow })
                 {
                     Assert(picker.Items.Contains(icon), "Neues A1-Icon ist auswaehlbar: " + icon);
                     picker.SelectedItem = icon;
                     Assert(preview.Items[0].Icon == icon && editor.Collect()[0].Icon == icon,
                         "Neues A1-Icon wird sofort angezeigt und uebernommen: " + icon);
+                    var persisted = new System.Web.Script.Serialization.JavaScriptSerializer();
+                    var restored = persisted.Deserialize<PremiereMenuItem[]>(persisted.Serialize(editor.Collect()));
+                    Assert(restored[0].Icon == icon, "Iconauswahl bleibt nach JSON-Rundlauf erhalten: " + icon);
                 }
                 picker.SelectedItem = MenuIcon.Razor;
                 Assert(editor.CollectConfiguration().IconSize == 32, "Icongroesse wird in Menuekonfiguration uebernommen");
@@ -503,7 +507,8 @@ namespace SpaceMouseBridge
             Reject(delegate { PremiereMenuItem.Validate(invalid); }, "Unbekannter Anzeigemodus abgewiesen");
             invalid.Display = MenuSegmentDisplay.Icon; invalid.Icon = (MenuIcon)999;
             Reject(delegate { PremiereMenuItem.Validate(invalid); }, "Unbekanntes Icon abgewiesen");
-            Assert((int)MenuIcon.Razor == 3 && (int)MenuIcon.Mute == 26,
+            Assert((int)MenuIcon.Razor == 3 && (int)MenuIcon.Mute == 26 && (int)MenuIcon.CloseGap == 33 &&
+                (int)MenuIcon.FullScreen == 34 && (int)MenuIcon.FullWindow == 35,
                 "Bestehende gespeicherte Iconnummern bleiben unveraendert");
             foreach (int size in new[] { 16, 24, 48 })
             {
@@ -604,6 +609,7 @@ namespace SpaceMouseBridge
             foreach (int menuNumber in new[] { 1, 2 })
             foreach (bool withAxes in new[] { false, true })
             foreach (ushort button in new ushort[] { 1, 2 })
+            foreach (ushort closingButton in new ushort[] { 1, 2 })
             using (var target = new ThemedForm { Text = "Bridge-Menue - Tastendrucktest" })
             using (var device = new Device { Preparsed = System.Runtime.InteropServices.Marshal.AllocHGlobal(1) })
             {
@@ -651,7 +657,8 @@ namespace SpaceMouseBridge
                         device.Axes.Add(new Axis { Name = name, Minimum = -350, Maximum = 350, ReportId = 1,
                             Value = name == "X" ? (long?)350 : null });
                 var group = new ButtonGroup { Seen = true, ReportId = 2 };
-                group.Available.Add(button);
+                group.Available.Add(1);
+                group.Available.Add(2);
                 group.Pressed.Add(button);
                 device.Buttons.Add(group);
                 if (withAxes)
@@ -670,8 +677,10 @@ namespace SpaceMouseBridge
                     var position = Cursor.Position;
                     runtime.Receive(device);
                     var radial = (BridgeRadialMenu)typeof(ApplicationMappings).GetField("activeMenu", flags).GetValue(runtime);
-                    Assert(radial != null && radial.Visible && (DateTime.UtcNow - before).TotalMilliseconds < 250,
-                        profile.Name + ": Menue beim ersten Druck ohne Loslassen, Wartezeit oder Achsenwerte");
+                    Assert(radial != null && radial.Visible,
+                        profile.Name + ": Menue beim ersten Druck ohne Loslassen oder Achsenwerte");
+                    Assert((DateTime.UtcNow - before).TotalMilliseconds < 250,
+                        profile.Name + ": Menue oeffnet ohne Wartezeit unter 250 ms");
                     var view = (RadialMenuView)radial.Controls[0];
                     Assert(view.MenuRadius == (menuNumber == 1 ? 77 : 120) &&
                         view.Items[0].Shortcut.Key == (int)(menuNumber == 1 ? Keys.F8 : Keys.F9) &&
@@ -697,7 +706,7 @@ namespace SpaceMouseBridge
                         group.Pressed.Clear();
                         group.ValueReport = ++device.Reports;
                         runtime.Receive(device);
-                        group.Pressed.Add(button);
+                        group.Pressed.Add(closingButton);
                         group.ValueReport = ++device.Reports;
                         runtime.Receive(device);
                         Assert(radial.Visible, "Schneller Doppeldruck innerhalb 250 ms schliesst das Menue nicht");
@@ -708,11 +717,12 @@ namespace SpaceMouseBridge
                         group.Pressed.Clear();
                         group.ValueReport = ++device.Reports;
                         runtime.Receive(device);
-                        group.Pressed.Add(button);
+                        group.Pressed.Add(closingButton);
                         group.ValueReport = ++device.Reports;
                         runtime.Receive(device);
                         Assert(!radial.Visible && radial.SelectedShortcut == null,
-                            "Erneuter Druck nach 250 ms schliesst ohne Kuerzel");
+                            "Taste " + closingButton + " schliesst nach Oeffnen mit Taste " + button +
+                            " nach 250 ms ohne Kuerzel oder Menuewechsel");
                     }
                     else radial.Close();
                     var deadline = DateTime.UtcNow.AddSeconds(1);
